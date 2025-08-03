@@ -4,9 +4,13 @@ import random
 
 app = Flask(__name__)
 
-# Dummy logic for improving text (mocked suggestion)
-def improve_abstract(text, emotion):
-    return f"Refined for emotion '{emotion}': {text[::-1]}"
+abstracts = [
+    "A study on AI-based gesture recognition for assistive communication.",
+    "Exploration of emotion-driven feedback in real-time web interfaces.",
+    "Webcam-based attention tracking for intelligent content delivery.",
+    "Personalized content suggestions using facial micro-expressions.",
+    "Building adaptive UI based on eye-gaze patterns and stress detection."
+]
 
 @app.route('/')
 def home():
@@ -16,14 +20,13 @@ def home():
 def suggest_abstract():
     try:
         data = request.get_json()
-        text = data.get("text", "")
-        emotion = data.get("emotion", "neutral")
-
-        suggestion = improve_abstract(text, emotion)
-
-        return jsonify({"suggested": suggestion})
+        text = data.get('text', '')
+        emotion = data.get('emotion', '')
+        suggested = f"Refined for emotion '{emotion}': {text[::-1]}"
+        return jsonify({"suggested": suggested})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
+
