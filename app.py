@@ -40,19 +40,14 @@ def suggest_abstract():
         text = data.get('text', '')
         emotion = data.get('emotion', 'neutral').lower()
 
-        # Choose from emotion-based list or fallback
         if emotion in suggestions_by_emotion:
             suggestion = random.choice(suggestions_by_emotion[emotion])
         else:
-            suggestion = random.choice(sum(suggestions_by_emotion.values(), []))  # Flatten all lists
+            suggestion = random.choice(sum(suggestions_by_emotion.values(), []))  # fallback
 
         return jsonify({"suggested": suggestion})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-@app.route('/suggest', methods=['POST'])
-def suggest_abstract():
-    ...
-    return jsonify({...})
 
 @app.route('/stream_suggest', methods=['POST'])
 def stream_suggest():
