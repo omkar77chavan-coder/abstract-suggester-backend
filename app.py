@@ -57,6 +57,7 @@ def suggest_abstract():
 @app.route('/stream_suggest', methods=['POST'])
 def stream_suggest():
     return suggest_abstract()
+
 if __name__ == '__main__':
     app.run(debug=True)
 
