@@ -1,0 +1,55 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SOP Suggestion</title>
+</head>
+<body style="font-family: Arial; max-width: 600px; margin: auto; padding: 20px;">
+    <h2>SOP Suggestion Form</h2>
+    <label for="sop_text">Your SOP:</label><br>
+    <textarea id="sop_text" rows="6" style="width: 100%;"></textarea><br><br>
+
+    <label for="gender">Gender:</label><br>
+    <select id="gender" style="width: 100%; padding: 8px;">
+        <option value="Male">Male</option>
+        <option value="Female">Female</option>
+        <option value="Other">Other</option>
+    </select><br><br>
+
+    <label for="age_group">Age Group:</label><br>
+    <select id="age_group" style="width: 100%; padding: 8px;">
+        <option value="18-25">18-25</option>
+        <option value="26-35">26-35</option>
+        <option value="36-45">36-45</option>
+        <option value="46+">46+</option>
+    </select><br><br>
+
+    <button onclick="submitSOP()" style="padding: 10px 20px;">Get Suggestion</button>
+
+    <h3>AI Suggestion:</h3>
+    <p id="suggested_output" style="color: darkblue;"></p>
+
+    <script>
+        function submitSOP() {
+            const text = document.getElementById("sop_text").value;
+            const gender = document.getElementById("gender").value;
+            const age_group = document.getElementById("age_group").value;
+
+            fetch("https://abstract-suggester-backend.onrender.com/suggest", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ text, gender, age_group })
+            })
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById("suggested_output").innerText = data.suggested;
+            })
+            .catch(() => {
+                document.getElementById("suggested_output").innerText = "Error getting suggestion.";
+            });
+        }
+    </script>
+</body>
+</html>
