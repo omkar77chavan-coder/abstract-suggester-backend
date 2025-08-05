@@ -49,7 +49,14 @@ def suggest_abstract():
         return jsonify({"suggested": suggestion})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+@app.route('/suggest', methods=['POST'])
+def suggest_abstract():
+    ...
+    return jsonify({...})
 
+@app.route('/stream_suggest', methods=['POST'])
+def stream_suggest():
+    return suggest_abstract()
 if __name__ == '__main__':
     app.run(debug=True)
 
