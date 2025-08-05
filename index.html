@@ -55,11 +55,12 @@
 
     function fetchAbstract() {
       const stream = document.getElementById("stream").value;
-      fetch("/stream_suggest", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ stream })
-      })
+     fetch("https://abstract-suggester-backend.onrender.com/stream_suggest", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ stream })
+})
+
       .then(res => res.json())
       .then(data => {
         document.getElementById("abstract_out").innerText = data.abstract || "-";
