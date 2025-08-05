@@ -2,54 +2,76 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SOP Suggestion</title>
+  <meta charset="UTF-8">
+  <title>Smart Abstract Generator</title>
+  <style>
+    body { font-family: Arial; max-width: 700px; margin: 30px auto; padding: 20px; background: #f5f5f5; }
+    .block { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    input, select, textarea, button { width: 100%; margin-top: 10px; padding: 10px; font-size: 16px; }
+    h2, h3 { color: #333; }
+  </style>
 </head>
-<body style="font-family: Arial; max-width: 600px; margin: auto; padding: 20px;">
-    <h2>SOP Suggestion Form</h2>
-    <label for="sop_text">Your SOP:</label><br>
-    <textarea id="sop_text" rows="6" style="width: 100%;"></textarea><br><br>
+<body>
+  <div class="block">
+    <h2>🎯 Smart Abstract + Conclusion Generator</h2>
+    <input type="text" id="name" placeholder="Name" />
+    <input type="number" id="age" placeholder="Age" />
+    <select id="gender">
+      <option value="">Select Gender</option>
+      <option>Male</option>
+      <option>Female</option>
+      <option>Other</option>
+    </select>
+    <select id="stream">
+      <option value="">Select Your Stream</option>
+      <option value="AI">AI</option>
+      <option value="ML">ML</option>
+      <option value="CSE">CSE</option>
+      <option value="Data Science">Data Science</option>
+      <option value="IoT">IoT</option>
+    </select>
+    <textarea id="user_input" placeholder="Type your abstract..." rows="4"></textarea>
+    <button onclick="fetchAbstract()">Optimize Abstract</button>
+    <h3>Suggested Abstract:</h3>
+    <p id="abstract_out"></p>
+    <h3>Suggested Conclusion:</h3>
+    <p id="conclusion_out"></p>
+    <p id="status"></p>
+  </div>
 
-    <label for="gender">Gender:</label><br>
-    <select id="gender" style="width: 100%; padding: 8px;">
-        <option value="Male">Male</option>
-        <option value="Female">Female</option>
-        <option value="Other">Other</option>
-    </select><br><br>
-
-    <label for="age_group">Age Group:</label><br>
-    <select id="age_group" style="width: 100%; padding: 8px;">
-        <option value="18-25">18-25</option>
-        <option value="26-35">26-35</option>
-        <option value="36-45">36-45</option>
-        <option value="46+">46+</option>
-    </select><br><br>
-
-    <button onclick="submitSOP()" style="padding: 10px 20px;">Get Suggestion</button>
-
-    <h3>AI Suggestion:</h3>
-    <p id="suggested_output" style="color: darkblue;"></p>
-
-    <script>
-        function submitSOP() {
-            const text = document.getElementById("sop_text").value;
-            const gender = document.getElementById("gender").value;
-            const age_group = document.getElementById("age_group").value;
-
-            fetch("https://abstract-suggester-backend.onrender.com/suggest", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ text, gender, age_group })
-            })
-            .then(res => res.json())
-            .then(data => {
-                document.getElementById("suggested_output").innerText = data.suggested;
-            })
-            .catch(() => {
-                document.getElementById("suggested_output").innerText = "Error getting suggestion.";
-            });
+  <script src="https://webgazer.cs.brown.edu/webgazer.js"></script>
+  <script>
+    let lastTime = Date.now();
+    webgazer.setGazeListener((data, timestamp) => {
+      if (data) {
+        const now = Date.now();
+        if (now - lastTime > 3000) {
+          document.getElementById("status").innerText = "👁️ Pause detected. Suggesting content...";
+          fetchAbstract();
+          lastTime = now;
         }
-    </script>
+      }
+    }).begin();
+
+    function fetchAbstract() {
+      const stream = document.getElementById("stream").value;
+      fetch("/stream_suggest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ stream })
+      })
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById("abstract_out").innerText = data.abstract || "-";
+        document.getElementById("conclusion_out").innerText = data.conclusion || "-";
+        document.getElementById("status").innerText = "✔️ Suggestion ready.";
+      })
+      .catch(err => {
+        document.getElementById("abstract_out").innerText = "Error.";
+        document.getElementById("conclusion_out").innerText = "Error.";
+        document.getElementById("status").innerText = "❌ Failed to fetch.";
+      });
+    }
+  </script>
 </body>
 </html>
