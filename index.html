@@ -1,132 +1,135 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Gaze-Based Abstract Generator</title>
+  <meta charset="UTF-8">
+  <title>Smart Abstract & Conclusion Generator</title>
   <style>
-    body { font-family: Arial, sans-serif; text-align: center; margin: 20px; }
-    #camera-box {
-      width: 320px; height: 240px;
-      border: 3px solid black; margin: auto; position: relative;
-      display: flex; align-items: center; justify-content: center;
-    }
-    video {
-      width: 100%; height: 100%; object-fit: cover;
-    }
-    #gazeStatus { margin-top: 10px; font-weight: bold; }
-    #output { margin-top: 20px; padding: 15px; border: 1px solid #ccc; min-height: 120px; }
-    select, button { margin: 10px; padding: 6px 12px; font-size: 14px; }
-    .green-ring { border: 3px solid green !important; }
-    .red-ring { border: 3px solid red !important; }
+    body{background:#111;color:#eee;font-family:sans-serif;margin:0;padding:20px}
+    .wrap{max-width:1100px;margin:auto;background:#1a1d22;padding:20px;border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,.4);display:grid;grid-template-columns:1fr 1fr;gap:20px}
+    h2{margin-top:0;color:#4da3ff}
+    label{display:block;margin-top:10px;font-size:14px;color:#ccc}
+    input,select,textarea{width:100%;padding:10px;border-radius:8px;border:1px solid #333;background:#0d1014;color:#eee;font-size:14px}
+    textarea{min-height:100px;resize:vertical}
+    button{margin-top:15px;width:100%;padding:12px;font-size:15px;font-weight:bold;color:#fff;background:linear-gradient(180deg,#4da3ff,#2b6bb3);border:none;border-radius:8px;cursor:pointer}
+    .status{margin-top:8px;font-size:13px;color:#0f0}
+    .output{margin-top:15px;background:#0d1014;border:1px solid #333;border-left:4px solid #4da3ff;padding:12px;border-radius:8px;white-space:pre-line;display:none}
+    .err{color:#ef4444}
+    .cam{margin-top:10px;position:relative;height:240px;background:#000;border-radius:8px;overflow:hidden}
+    #webgazerVideoFeed{position:absolute;top:0;left:0;width:100%!important;height:100%!important;object-fit:cover!important;transform:scaleX(-1)}
+    #webgazerFaceOverlay,#webgazerFaceFeedbackBox,#webgazerGazeDot{position:absolute;top:0;left:0;z-index:5}
+    #webgazerGazeDot{display:none!important}
+    .gaze-status{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.6);color:#fff;padding:4px 8px;border-radius:6px;font-size:13px}
   </style>
-  <script src="https://webgazer.cs.brown.edu/webgazer.js"></script>
 </head>
 <body>
-  <h1>Gaze-Based Abstract Generator</h1>
+  <div class="wrap">
+    <!-- LEFT SIDE -->
+    <div>
+      <h2>Smart Abstract & Conclusion Generator</h2>
+      <p style="font-size:13px;color:#aaa">Stable Gaze 3s = precise • Off-center = short • Partial = incomplete • Button always works</p>
 
-  <label for="academicLevel">Academic Level:</label>
-  <select id="academicLevel">
-    <option value="UG">UG</option>
-    <option value="PG">PG</option>
-  </select>
+      <!-- Camera -->
+      <div class="cam" id="camBox">
+        <div class="gaze-status">Gaze: <span id="gazeVal" style="color:yellow">Detecting…</span></div>
+      </div>
 
-  <label for="stream">Stream:</label>
-  <select id="stream">
-    <option value="AI">AI</option>
-    <option value="ML">ML</option>
-    <option value="CSE">CSE</option>
-    <option value="Cybersecurity">Cybersecurity</option>
-    <option value="Data Science">Data Science</option>
-    <option value="Electronics">Electronics</option>
-  </select>
+      <!-- Form Fields -->
+      <label>Name</label>
+      <input id="name" type="text" placeholder="Your full name">
 
-  <div id="camera-box">
-    <video id="webcam" autoplay playsinline></video>
-  </div>
-  <div id="gazeStatus">Gaze status: Waiting...</div>
+      <label>Age</label>
+      <input id="age" type="number" placeholder="20">
 
-  <button id="generateBtn">Generate Abstract</button>
+      <label>Gender</label>
+      <select id="gender">
+        <option value="">Select</option><option>Male</option><option>Female</option><option>Other</option>
+      </select>
 
-  <div id="output">
-    <h3>Abstract:</h3>
-    <p id="abstractText"></p>
-    <h3>Conclusion:</h3>
-    <p id="conclusionText"></p>
+      <label>Academic Level</label>
+      <select id="level">
+        <option value="">Select</option>
+        <option value="UG">Undergraduate</option>
+        <option value="PG">Postgraduate</option>
+      </select>
+
+      <label>Stream</label>
+      <select id="stream">
+        <option value="">Select</option>
+        <option>AI</option>
+        <option>ML</option>
+        <option>CSE</option>
+        <option>Cybersecurity</option>
+        <option>Data Science</option>
+        <option>Electronics</option>
+      </select>
+
+      <label>Write your Abstract (min 15 words)</label>
+      <textarea id="abstract" placeholder="Describe your topic and goals..."></textarea>
+      <div id="wordCount" style="font-size:12px;color:#aaa;margin-top:4px">Words: 0</div>
+
+      <button id="genBtn">Generate Abstract & Conclusion</button>
+      <div id="status" class="status">Waiting for input…</div>
+    </div>
+
+    <!-- RIGHT SIDE -->
+    <div>
+      <h2>Generated Content</h2>
+      <div class="output" id="outAbs"></div>
+      <div class="output" id="outCon"></div>
+    </div>
   </div>
 
   <script>
-    let stableStart = null;
-    let lastStatus = "none";
+    const $=id=>document.getElementById(id);
+    const nameEl=$("name"),ageEl=$("age"),genderEl=$("gender"),
+          streamEl=$("stream"),levelEl=$("level"),absEl=$("abstract"),
+          btnEl=$("genBtn"),statusEl=$("status"),
+          outAbs=$("outAbs"),outCon=$("outCon"),wordEl=$("wordCount"),
+          gazeVal=$("gazeVal");
 
-    // Access camera manually for alignment
-    async function initCamera() {
-      const video = document.getElementById("webcam");
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        video.srcObject = stream;
-      } catch (err) {
-        console.error("Camera access error:", err);
-      }
+    const BACKEND_URL="http://localhost:5000/suggest"; // 🔹 Use your Flask server
+
+    const countWords=s=>s.trim().split(/\s+/).filter(Boolean).length;
+    function refreshWords(){wordEl.textContent=`Words: ${countWords(absEl.value)}`;}
+    ["input","change"].forEach(ev=>absEl.addEventListener(ev,refreshWords));
+
+    async function fetchSuggestion(gaze){
+      statusEl.textContent="Generating…";statusEl.className="status";
+      try{
+        const payload={
+          name:nameEl.value.trim(),
+          age:ageEl.value.trim(),
+          gender:genderEl.value,
+          stream:streamEl.value,
+          academicLevel:levelEl.value,
+          abstract:absEl.value.trim(),
+          gazeStatus:gaze
+        };
+        const res=await fetch(BACKEND_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+        const data=await res.json();if(!res.ok)throw new Error(data.error||"Server error");
+        outAbs.textContent="Abstract: "+data.abstract;outCon.textContent="Conclusion: "+data.conclusion;
+        outAbs.style.display="block";outCon.style.display="block";
+        statusEl.textContent="Done!";
+      }catch(e){statusEl.textContent="Error: "+(e.message||"failed");statusEl.className="status err";}
     }
-    initCamera();
+    btnEl.onclick=()=>fetchSuggestion("manual");
 
-    // Fake gaze detection logic (replace with actual webgazer detection if calibrated)
-    function detectGaze() {
-      // Example: randomly assign statuses for testing
-      const statuses = ["centered", "off-center", "partial"];
-      return statuses[Math.floor(Math.random() * statuses.length)];
+    // --- Webgazer Stable Logic ---
+    let lastDir=null,startTs=0,triggered=false;
+    function gazeLogic(x){
+      const w=window.innerWidth;
+      const dir=(x<w*0.35)?"left":(x>w*0.65)?"right":"center";
+      if(dir!==lastDir){lastDir=dir;startTs=Date.now();triggered=false;}
+      const elapsed=(Date.now()-startTs)/1000;
+      gazeVal.textContent=dir;gazeVal.style.color=dir==="center"?"lime":dir==="left"||dir==="right"?"orange":"red";
+      if(dir==="center"&&elapsed>=3&&!triggered){triggered=true;fetchSuggestion("centered");}
     }
-
-    async function fetchAbstract(level, stream, gaze) {
-      const res = await fetch("http://127.0.0.1:5000/suggest", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ academicLevel: level, stream: stream, gazeStatus: gaze })
-      });
-      return await res.json();
+    function initGaze(){
+      const s=document.createElement("script");s.src="https://webgazer.cs.brown.edu/webgazer.js";s.async=true;
+      s.onload=()=>{try{webgazer.setGazeListener(d=>{if(d)gazeLogic(d.x)}).begin();}catch(e){console.error(e)}};
+      document.head.appendChild(s);
     }
-
-    async function updateOutput(level, stream, gaze) {
-      const data = await fetchAbstract(level, stream, gaze);
-      if (!data.error) {
-        document.getElementById("abstractText").textContent = data.abstract;
-        document.getElementById("conclusionText").textContent = data.conclusion;
-      }
-    }
-
-    // Button backup
-    document.getElementById("generateBtn").addEventListener("click", () => {
-      const level = document.getElementById("academicLevel").value;
-      const stream = document.getElementById("stream").value;
-      updateOutput(level, stream, "manual");
-    });
-
-    // Continuous gaze check
-    setInterval(() => {
-      const status = detectGaze(); // Replace with actual gaze from webgazer
-      const box = document.getElementById("camera-box");
-      const level = document.getElementById("academicLevel").value;
-      const stream = document.getElementById("stream").value;
-
-      document.getElementById("gazeStatus").textContent = "Gaze status: " + status;
-
-      if (status === "centered") {
-        box.classList.add("green-ring"); box.classList.remove("red-ring");
-        if (!stableStart) stableStart = Date.now();
-        else if (Date.now() - stableStart > 3000 && lastStatus !== "centered") {
-          updateOutput(level, stream, "centered");
-          lastStatus = "centered";
-        }
-      } else {
-        box.classList.add("red-ring"); box.classList.remove("green-ring");
-        stableStart = null;
-
-        if (status !== lastStatus) {
-          updateOutput(level, stream, status);
-          lastStatus = status;
-        }
-      }
-    }, 1000);
+    initGaze();
   </script>
 </body>
 </html>
