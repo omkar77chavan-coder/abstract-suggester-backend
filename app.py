@@ -11,7 +11,7 @@ last_used = {
     "PG": {s: None for s in ["AI", "ML", "CSE", "Cybersecurity", "Data Science", "Electronics"]}
 }
 
-# ----------- DATASET (UG + PG, long abstracts) -----------
+# ----------- DATASET -----------
 DATA = {
     "UG": {
         "AI": [
@@ -187,45 +187,22 @@ DATA = {
     }
 }
 
-# ----------- SIMPLE FALLBACK (off-center gaze) -----------
+# ----------- FALLBACKS -----------
 SIMPLE_DATA = {
     "abstract": "A quick overview of the chosen field is provided with simple explanations.",
     "conclusion": "This short conclusion summarizes the key idea in a straightforward way."
 }
 
-# ----------- PARTIAL GAZE DATA (one-liners per stream) -----------
 PARTIAL_DATA = {
-    "AI": [
-        {"abstract": "AI explores machines that think a little like humans.", "conclusion": "AI opens paths to smarter systems."},
-        {"abstract": "Artificial Intelligence studies decision-making in software.", "conclusion": "AI blends logic with data."}
-    ],
-    "ML": [
-        {"abstract": "Machine Learning finds patterns in data with algorithms.", "conclusion": "ML enables predictive insights."},
-        {"abstract": "ML trains computers to learn from examples.", "conclusion": "It grows smarter with more data."}
-    ],
-    "CSE": [
-        {"abstract": "Computer Science builds foundations for modern computing.", "conclusion": "CSE powers digital innovation."},
-        {"abstract": "CSE teaches coding, logic, and algorithms.", "conclusion": "It underpins all software systems."}
-    ],
-    "Cybersecurity": [
-        {"abstract": "Cybersecurity keeps systems safe from threats.", "conclusion": "It ensures digital trust."},
-        {"abstract": "Cybersecurity guards data and privacy.", "conclusion": "Strong security prevents attacks."}
-    ],
-    "Data Science": [
-        {"abstract": "Data Science extracts knowledge from raw information.", "conclusion": "It drives evidence-based actions."},
-        {"abstract": "Data Science makes sense of large datasets.", "conclusion": "It turns data into insights."}
-    ],
-    "Electronics": [
-        {"abstract": "Electronics studies circuits and devices.", "conclusion": "It enables all digital hardware."},
-        {"abstract": "Electronics powers everyday machines.", "conclusion": "It links theory with technology."}
-    ]
+    "abstract": "An incomplete abstract was detected due to partial input.",
+    "conclusion": "The conclusion remains unfinished as the context was partial."
 }
-
-last_used_partial = {s: None for s in PARTIAL_DATA.keys()}
 
 # ----------- HELPERS -----------
 def normalize_stream(stream):
-    if not stream: return None
+    """Normalize stream input to match dataset keys"""
+    if not stream:
+        return None
     s = stream.strip().lower()
     mapping = {
         "ai": "AI", "artificial intelligence": "AI",
@@ -238,6 +215,7 @@ def normalize_stream(stream):
     return mapping.get(s, None)
 
 def choose_variant(level, stream):
+    """Pick random variant without consecutive repeat"""
     options = DATA[level][stream]
     prev = last_used[level][stream]
     choices = [i for i in range(len(options)) if i != prev]
@@ -245,19 +223,7 @@ def choose_variant(level, stream):
     last_used[level][stream] = idx
     return options[idx]
 
-def choose_partial(stream):
-    return PARTIAL_DATA.get(stream, {"abstract": "Partial abstract.", "conclusion": "Partial conclusion."})
-
-def normalize_stream(stream):
-    if not stream: return None
-    mapping = {
-        "ai": "AI", "ml": "ML", "cse": "CSE", "cybersecurity": "Cybersecurity",
-        "data science": "Data Science", "electronics": "Electronics"
-    }
-    key = stream.strip().lower()
-    return mapping.get(key, stream)
-
-# ----------------- ROUTE -----------------
+# ----------- ROUTE -----------
 @app.route("/suggest", methods=["POST"])
 def suggest():
     data = request.get_json()
@@ -277,17 +243,11 @@ def suggest():
     elif gaze == "off-center":
         choice = SIMPLE_DATA
     elif gaze == "partial":
-        choice = choose_partial(stream)
-    else:  # manual or unknown
+        choice = PARTIAL_DATA
+    else:
         choice = choose_variant(level, stream)
 
     return jsonify(choice)
 
-# ----------------- MAIN -----------------
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, ssl_context=("cert.pem", "key.pem"))
-
-    return jsonify(choice)
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=5000, ssl_context="adhoc")  # HTTPS ready
