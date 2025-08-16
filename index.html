@@ -1,36 +1,68 @@
-<!-- Smart Abstract & Conclusion Generator – Final Odoo Version -->
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <title>Smart Abstract & Conclusion Generator</title>
   <style>
-    body{background:#111;color:#eee;font-family:sans-serif;margin:0;padding:20px}
-    .wrap{max-width:1000px;margin:auto;background:#1a1d22;padding:20px;border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,.4)}
-    h2{margin-top:0;color:#4da3ff}
-    label{display:block;margin-top:10px;font-size:14px;color:#ccc}
-    input,select,textarea{width:100%;padding:10px;border-radius:8px;border:1px solid #333;background:#0d1014;color:#eee;font-size:14px}
-    textarea{min-height:100px;resize:vertical}
-    button{margin-top:15px;width:100%;padding:12px;font-size:15px;font-weight:bold;color:#fff;background:linear-gradient(180deg,#4da3ff,#2b6bb3);border:none;border-radius:8px;cursor:pointer}
-    button:disabled{opacity:.5;cursor:not-allowed}
-    .status{margin-top:8px;font-size:13px;color:#0f0}
-    .output{margin-top:15px;background:#0d1014;border:1px solid #333;border-left:4px solid #4da3ff;padding:12px;border-radius:8px;white-space:pre-line;display:none}
-    .warn{color:#f59e0b}
-    .err{color:#ef4444}
-    .cam{margin-top:15px;position:relative;height:180px;background:#000;border-radius:8px;overflow:hidden}
-    #webgazerVideoFeed{position:absolute;top:0;left:0;width:100%!important;height:100%!important;object-fit:cover!important;transform:scaleX(-1)}
-    #webgazerFaceOverlay,#webgazerFaceFeedbackBox,#webgazerGazeDot{position:absolute;top:0;left:0;z-index:5}
-    #webgazerGazeDot{display:none!important}
-    .gaze-status{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.6);color:#fff;padding:4px 8px;border-radius:6px;font-size:13px}
+    body {background:#111;color:#eee;font-family:sans-serif;margin:0;padding:20px}
+    .wrap {max-width:1000px;margin:auto;background:#1a1d22;padding:20px;border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,.4)}
+    h2 {margin-top:0;color:#4da3ff}
+    label {display:block;margin-top:10px;font-size:14px;color:#ccc}
+    input,select,textarea {
+      width:100%;padding:10px;border-radius:8px;border:1px solid #333;
+      background:#0d1014;color:#eee;font-size:14px
+    }
+    textarea {min-height:100px;resize:vertical}
+    button {
+      margin-top:15px;width:100%;padding:12px;font-size:15px;font-weight:bold;
+      color:#fff;background:linear-gradient(180deg,#4da3ff,#2b6bb3);
+      border:none;border-radius:8px;cursor:pointer
+    }
+    button:disabled {opacity:.5;cursor:not-allowed}
+    .status {margin-top:8px;font-size:13px;color:#0f0}
+    .output {
+      margin-top:15px;background:#0d1014;border:1px solid #333;
+      border-left:4px solid #4da3ff;padding:12px;border-radius:8px;
+      white-space:pre-line;display:none
+    }
+    .warn {color:#f59e0b}
+    .err {color:#ef4444}
+
+    /* Camera box */
+    .cam {
+      margin-top:15px;position:relative;width:320px;height:240px;
+      background:#000;border-radius:8px;overflow:hidden
+    }
+    #cameraFeed {
+      width:100%;height:100%;object-fit:cover;transform:scaleX(-1)
+    }
+    /* Contain WebGazer overlays in same camera box */
+    #webgazerVideoFeed,
+    #webgazerFaceOverlay,
+    #webgazerFaceFeedbackBox,
+    #webgazerGazeDot {
+      position:absolute !important;
+      top:0 !important;left:0 !important;
+      width:100% !important;height:100% !important;
+      z-index:5;
+    }
+    #webgazerVideoFeed {display:none !important} /* hide duplicate feed */
+    #webgazerGazeDot {background:red !important;border-radius:50%;width:8px;height:8px}
+
+    .gaze-status {
+      position:absolute;bottom:6px;left:50%;transform:translateX(-50%);
+      background:rgba(0,0,0,.6);color:#fff;padding:4px 8px;
+      border-radius:6px;font-size:13px;z-index:10
+    }
   </style>
 </head>
 <body>
   <div class="wrap">
     <h2>Smart Abstract & Conclusion Generator</h2>
-    <p style="font-size:13px;color:#aaa">Gaze center for ~2s → auto-generate. Button always works.</p>
+    <p style="font-size:13px;color:#aaa">Auto: 15+ words → instant generate • Gaze 2s → auto • Off-center → short simple • Button always works</p>
 
     <div class="cam" id="camBox">
+      <video id="cameraFeed" autoplay muted playsinline></video>
       <div class="gaze-status">Gaze: <span id="gazeVal" style="color:yellow">Detecting…</span></div>
     </div>
 
@@ -48,12 +80,8 @@
     <label>Stream</label>
     <select id="stream">
       <option value="">Select</option>
-      <option>AI</option>
-      <option>ML</option>
-      <option>CSE</option>
-      <option>Cybersecurity</option>
-      <option>Data Science</option>
-      <option>Electronics</option>
+      <option>AI</option><option>ML</option><option>CSE</option>
+      <option>Cybersecurity</option><option>Data Science</option><option>Electronics</option>
     </select>
 
     <label>Academic Level</label>
@@ -80,9 +108,14 @@
           streamEl=$("stream"),levelEl=$("level"),absEl=$("abstract"),
           btnEl=$("genBtn"),statusEl=$("status"),
           outAbs=$("outAbs"),outCon=$("outCon"),wordEl=$("wordCount"),
-          gazeVal=$("gazeVal");
+          gazeVal=$("gazeVal"),camFeed=$("cameraFeed");
 
     const BACKEND_URL="https://abstract-suggester-backend.onrender.com/suggest";
+
+    // Webcam feed into <video>
+    navigator.mediaDevices.getUserMedia({video:true})
+      .then(s=>camFeed.srcObject=s)
+      .catch(e=>console.error("Camera error",e));
 
     const countWords=s=>s.trim().split(/\s+/).filter(Boolean).length;
     function formReady(){
@@ -108,18 +141,25 @@
     }
     btnEl.onclick=()=>fetchSuggestion("manual");
 
-    // --- Webgazer ---
+    // --- WebGazer ---
     let lastDir=null,startTs=0,triggered=false;
     function gazeLogic(x){
-      const w=window.innerWidth;const dir=(x<w*0.35)?"left":(x>w*0.65)?"right":"center";
+      const w=window.innerWidth;
+      const dir=(x<w*0.35)?"left":(x>w*0.65)?"right":"center";
       if(dir!==lastDir){lastDir=dir;startTs=Date.now();triggered=false;}
       const elapsed=(Date.now()-startTs)/1000;
-      gazeVal.textContent=dir;gazeVal.style.color=dir==="center"?"lime":dir==="left"||dir==="right"?"orange":"red";
+      gazeVal.textContent=dir;gazeVal.style.color=dir==="center"?"lime":(dir==="left"||dir==="right")?"orange":"red";
       if(dir==="center"&&elapsed>=2&&!triggered&&formReady()){triggered=true;fetchSuggestion("centered");}
+      if((dir==="left"||dir==="right")&&elapsed>=2&&!triggered&&formReady()){triggered=true;fetchSuggestion("off-center");}
     }
     function initGaze(){
       const s=document.createElement("script");s.src="https://webgazer.cs.brown.edu/webgazer.js";s.async=true;
-      s.onload=()=>{try{webgazer.setGazeListener(d=>{if(d)gazeLogic(d.x)}).begin();}catch(e){console.error(e)}};
+      s.onload=()=>{try{
+        webgazer.setGazeListener(d=>{if(d)gazeLogic(d.x)})
+        .showVideoPreview(false) // hide default preview
+        .showFaceOverlay(true).showFaceFeedbackBox(true)
+        .begin();
+      }catch(e){console.error(e)}};
       document.head.appendChild(s);
     }
     refreshGate();initGaze();
