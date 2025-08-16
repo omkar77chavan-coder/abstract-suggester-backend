@@ -1,65 +1,155 @@
 from flask import Flask, request, jsonify
-from flask_cors import CORS
+import random
 
 app = Flask(__name__)
-CORS(app)
 
-# Sample abstracts and conclusions for each stream
-STREAM_ABSTRACTS = {
-    'ai': """Artificial Intelligence (AI) is a transformative field that integrates computational intelligence to mimic human cognitive processes. This abstract explores the application of AI in solving complex real-world problems, emphasizing areas like machine learning, natural language processing, and robotics. We discuss how AI enhances automation, decision-making, and data analysis across diverse sectors such as healthcare, finance, and education. Key innovations in neural networks and deep learning architectures are reviewed, including convolutional and recurrent models. The paper also considers ethical concerns and future challenges. Overall, the exploration aims to provide a comprehensive overview of the role AI plays in reshaping technological landscapes.""",
+# Store last used variation per stream+level to avoid repetition
+last_used = {}
 
-    'data science': """Data Science is the interdisciplinary field that extracts actionable insights from vast datasets. This abstract highlights core methods such as data mining, visualization, and predictive analytics. Tools like Python, R, and SQL are explored in conjunction with frameworks like TensorFlow and Hadoop. The focus is on real-world case studies across industries including retail, healthcare, and marketing. Emphasis is placed on preprocessing techniques, model validation, and communication of results. Ethical considerations regarding privacy and algorithmic bias are addressed. This overview aims to capture the essence of data-driven decision-making and the value of structured, unstructured, and streaming data in modern enterprises.""",
-
-    'ml': """Machine Learning (ML) is a dynamic subset of AI that enables systems to learn patterns from data and improve over time without explicit programming. This abstract dives into supervised, unsupervised, and reinforcement learning techniques. It evaluates common algorithms such as decision trees, SVMs, k-means, and Q-learning. We assess model accuracy, overfitting, and performance tuning methods. Special attention is given to cross-validation, confusion matrices, and ROC curves. Applications in image classification, recommendation systems, and fraud detection are discussed. This study underscores the power of ML in automating insights and building intelligent, adaptive applications.""",
-
-    'cse': """Computer Science and Engineering (CSE) combines foundational principles of computation with practical software and hardware engineering. This abstract introduces topics ranging from algorithm design and data structures to system programming, operating systems, and database management. The paper explores recent advancements in cloud computing, distributed systems, and cybersecurity. We delve into coding paradigms like object-oriented and functional programming and highlight the significance of scalable software development. CSE serves as the backbone of modern IT solutions and digital infrastructures, empowering innovations in smart technologies and automation.""",
-
-    'cybersecurity': """Cybersecurity is the practice of protecting systems, networks, and programs from digital threats. This abstract examines strategies for mitigating cyberattacks, including firewalls, encryption, ethical hacking, and penetration testing. The growing importance of secure coding, user authentication, and vulnerability assessment is discussed. Topics also include network security protocols, incident response plans, and regulatory compliance (e.g., GDPR, HIPAA). Real-world case studies demonstrate evolving threats like ransomware, phishing, and DDoS attacks. The field's dynamic nature demands constant vigilance and innovation to ensure digital trust in an increasingly connected world."""
+# Variation data
+abstract_variations = {
+    "UG": {
+        "AI": [
+            "Artificial Intelligence is transforming industries by automating decision-making, enhancing productivity, and enabling machines to perform human-like tasks.",
+            "AI uses algorithms and data-driven approaches to simulate human intelligence, creating solutions that adapt and learn from new information.",
+            "From virtual assistants to predictive analytics, AI is a growing field offering innovative tools for everyday applications."
+        ],
+        "Data Science": [
+            "Data Science focuses on extracting valuable insights from large datasets using statistical methods and computational tools.",
+            "By combining programming, math, and domain knowledge, data science helps organizations make data-driven decisions.",
+            "Applications range from trend analysis to predictive modeling, transforming data into actionable strategies."
+        ],
+        "ML": [
+            "Machine Learning allows systems to learn and improve from experience without explicit programming.",
+            "By identifying patterns in data, ML enables automation in areas like speech recognition, recommendation systems, and fraud detection.",
+            "ML bridges the gap between raw data and intelligent action, driving smarter decision-making."
+        ],
+        "CSE": [
+            "Computer Science and Engineering integrates hardware, software, and computational theory to solve real-world problems.",
+            "CSE equips learners with skills in coding, algorithms, and system design for diverse technology careers.",
+            "From app development to AI, CSE is a versatile discipline with global opportunities."
+        ],
+        "Cybersecurity": [
+            "Cybersecurity protects systems, networks, and data from digital attacks and unauthorized access.",
+            "It involves preventive measures, detection systems, and response strategies to ensure data integrity and privacy.",
+            "With rising cyber threats, cybersecurity skills are essential in all digital sectors."
+        ]
+    },
+    "PG": {
+        "AI": [
+            "Artificial Intelligence encompasses deep learning architectures, reinforcement learning paradigms, and advanced NLP techniques driving autonomous decision-making in complex systems.",
+            "Leveraging high-dimensional datasets, AI integrates symbolic reasoning with neural computation for robust, adaptive intelligence in dynamic environments.",
+            "AI research at the postgraduate level emphasizes scalable architectures, ethical frameworks, and cross-domain deployment strategies."
+        ],
+        "Data Science": [
+            "Postgraduate Data Science integrates advanced statistical inference, machine learning models, and big data frameworks for high-impact analytics.",
+            "Leveraging distributed computing and feature engineering, it delivers predictive and prescriptive insights for strategic decision-making.",
+            "Research-driven data science focuses on model interpretability, algorithmic fairness, and deployment optimization."
+        ],
+        "ML": [
+            "Advanced Machine Learning explores ensemble techniques, deep neural architectures, and self-supervised paradigms for high-dimensional data processing.",
+            "It includes optimization algorithms, regularization strategies, and transfer learning for efficient model generalization.",
+            "Postgraduate ML applications include autonomous systems, biomedical informatics, and large-scale personalization engines."
+        ],
+        "CSE": [
+            "Postgraduate CSE delves into distributed systems, advanced compiler design, and algorithmic complexity for high-performance computing.",
+            "It integrates theoretical computing models with cutting-edge software engineering and AI systems.",
+            "CSE at this level emphasizes scalable architectures, secure protocols, and innovation-driven problem solving."
+        ],
+        "Cybersecurity": [
+            "Advanced Cybersecurity focuses on zero-trust architectures, cryptographic protocols, and AI-driven threat intelligence systems.",
+            "It includes blockchain security, quantum-safe cryptography, and proactive vulnerability assessment frameworks.",
+            "Postgraduate research addresses adaptive defense strategies against sophisticated and evolving cyber threats."
+        ]
+    }
 }
 
-STREAM_CONCLUSIONS = {
-    'ai': """In conclusion, Artificial Intelligence continues to redefine how we interact with machines and interpret data. Its role in automating decisions and solving complex problems cannot be overstated. As the field matures, ethical governance and explainability will be crucial. Future advancements will demand interdisciplinary collaboration to unlock AI’s full potential across all domains.""",
-
-    'data science': """In conclusion, Data Science serves as a bridge between raw information and strategic decision-making. The ability to extract value from large datasets empowers businesses and researchers alike. As technologies evolve, data scientists must navigate challenges around bias, transparency, and real-time analysis to build meaningful solutions.""",
-
-    'ml': """In conclusion, Machine Learning is a catalyst for intelligent automation and insight generation. Its applicability across fields makes it a key component of modern systems. Continued progress in algorithm efficiency, interpretability, and ethical implementation will shape the future of ML-driven innovation.""",
-
-    'cse': """In conclusion, Computer Science and Engineering lies at the heart of technological evolution. From code to cloud, CSE professionals play a pivotal role in shaping secure, scalable, and innovative digital ecosystems. As boundaries blur between disciplines, CSE will continue enabling breakthroughs in AI, IoT, and human-computer interaction.""",
-
-    'cybersecurity': """In conclusion, cybersecurity is a cornerstone of digital resilience in the modern age. With threats evolving daily, the emphasis on proactive defense, policy compliance, and awareness is more critical than ever. Building a secure cyberspace requires collaboration, innovation, and unwavering commitment to protecting digital integrity."""
+conclusion_variations = {
+    "UG": {
+        "AI": [
+            "AI offers immense potential for simplifying complex tasks, fostering innovation across industries.",
+            "The continuous evolution of AI tools promises improved efficiency and accessibility.",
+            "Students in AI can look forward to contributing to impactful and diverse projects."
+        ],
+        "Data Science": [
+            "Data Science empowers decision-making with clarity and precision.",
+            "Emerging tools in data analytics promise even more robust predictive capabilities.",
+            "The field offers vast opportunities for research, industry, and entrepreneurship."
+        ],
+        "ML": [
+            "Machine Learning is a key enabler of modern automation and personalization.",
+            "It is a rapidly expanding field with applications in almost every domain.",
+            "The future of ML is boundless, with innovation at its core."
+        ],
+        "CSE": [
+            "CSE forms the foundation of many modern technological innovations.",
+            "Graduates can explore careers from software development to AI research.",
+            "The discipline remains vital to solving global digital challenges."
+        ],
+        "Cybersecurity": [
+            "Cybersecurity is essential for protecting the digital backbone of society.",
+            "With technology growth, security expertise will only become more critical.",
+            "The field promises rewarding careers safeguarding vital data and infrastructure."
+        ]
+    },
+    "PG": {
+        "AI": [
+            "AI at the postgraduate level demands a deep understanding of algorithms, scalability, and ethical AI deployment.",
+            "Research opportunities in AI are vast, influencing policy, technology, and innovation.",
+            "Graduates can lead the development of next-gen intelligent systems across domains."
+        ],
+        "Data Science": [
+            "Postgraduate Data Science equips professionals to tackle large-scale, high-stakes analytical problems.",
+            "Advanced analytics will shape industries by delivering deeper, actionable insights.",
+            "Research-level work drives algorithmic innovation and business transformation."
+        ],
+        "ML": [
+            "Postgraduate ML fosters innovation in adaptive systems and cross-domain AI applications.",
+            "It enables breakthroughs in fields like precision medicine and autonomous technologies.",
+            "Graduates are poised to contribute to cutting-edge AI research globally."
+        ],
+        "CSE": [
+            "Advanced CSE prepares professionals for leadership roles in research and technology development.",
+            "It builds the expertise to design secure, efficient, and scalable systems.",
+            "The discipline remains critical to technological and societal progress."
+        ],
+        "Cybersecurity": [
+            "Postgraduate cybersecurity develops leaders in proactive threat prevention and digital resilience.",
+            "Graduates can shape global standards in data protection and cyber defense.",
+            "It offers opportunities to pioneer advancements in secure technology infrastructures."
+        ]
+    }
 }
 
+def get_non_repeating_variation(level, stream, data_dict):
+    global last_used
+    options = data_dict[level][stream]
+    last_index = last_used.get((level, stream), -1)
+    
+    available_indices = [i for i in range(len(options)) if i != last_index]
+    chosen_index = random.choice(available_indices)
+    
+    last_used[(level, stream)] = chosen_index
+    return options[chosen_index]
 
-@app.route('/')
-def home():
-    return "✅ Abstract Generator Backend is Live"
+@app.route("/suggest", methods=["POST"])
+def suggest():
+    user_data = request.json
+    stream = user_data.get("stream")
+    level = user_data.get("academicLevel")
+    gaze_status = user_data.get("gazeStatus", "centered")
 
+    if not stream or not level:
+        return jsonify({"error": "Missing required fields"}), 400
 
-@app.route('/suggest', methods=['POST'])
-def suggest_abstract():
-    try:
-        data = request.get_json()
-        stream = data.get("stream", "").lower()
-        text = data.get("text", "")
+    # If gaze is off-center, force UG simple output
+    if gaze_status != "centered":
+        level = "UG"
 
-        print(f"[LOG] Received request for stream: {stream} | Text length: {len(text)}")
+    abstract = get_non_repeating_variation(level, stream, abstract_variations)
+    conclusion = get_non_repeating_variation(level, stream, conclusion_variations)
 
-        abstract = STREAM_ABSTRACTS.get(stream)
-        conclusion = STREAM_CONCLUSIONS.get(stream)
+    return jsonify({"abstract": abstract, "conclusion": conclusion})
 
-        if not abstract or not conclusion:
-            return jsonify({"error": "Stream not supported or missing"}), 400
-
-        return jsonify({
-            "abstract": abstract,
-            "conclusion": conclusion
-        })
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     app.run(debug=True)
-
-
-
