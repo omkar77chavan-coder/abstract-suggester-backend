@@ -22,28 +22,15 @@
       overflow: hidden;
       box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
     }
-    .left, .right {
-      padding: 30px;
-    }
+    .left, .right { padding: 30px; }
     .left {
       width: 45%;
       background: #181818;
       border-right: 1px solid #333;
     }
-    .right {
-      width: 55%;
-    }
-    h2 {
-      text-align: center;
-      margin-bottom: 20px;
-      color: #fff;
-    }
-    label {
-      font-weight: 600;
-      display: block;
-      margin-top: 15px;
-      color: #ccc;
-    }
+    .right { width: 55%; }
+    h2 { text-align: center; margin-bottom: 20px; color: #fff; }
+    label { font-weight: 600; display: block; margin-top: 15px; color: #ccc; }
     input, select, textarea {
       width: 100%;
       padding: 10px;
@@ -54,10 +41,7 @@
       background: #2a2a2a;
       color: white;
     }
-    textarea {
-      resize: vertical;
-      height: 100px;
-    }
+    textarea { resize: vertical; height: 100px; }
     button {
       width: 100%;
       margin-top: 20px;
@@ -70,10 +54,7 @@
       font-size: 16px;
       cursor: pointer;
     }
-    button:disabled {
-      background: #444;
-      cursor: not-allowed;
-    }
+    button:disabled { background: #444; cursor: not-allowed; }
     .output-box {
       background: #222;
       padding: 15px;
@@ -82,17 +63,8 @@
       white-space: pre-line;
       color: #ddd;
     }
-    #status {
-      color: #00ff99;
-      font-weight: bold;
-      margin-top: 10px;
-    }
-    .word-info {
-      font-size: 13px;
-      color: #888;
-      margin-top: 4px;
-      text-align: right;
-    }
+    #status { color: #00ff99; font-weight: bold; margin-top: 10px; }
+    .word-info { font-size: 13px; color: #888; margin-top: 4px; text-align: right; }
   </style>
 </head>
 <body>
@@ -226,29 +198,23 @@
       }));
   });
 
-  // WebGazer logic (desktop only)
+  // WebGazer logic
   if (!isMobile) {
-    let pauseStart = null;
-    let gazeStatus = "centered";
+    let gazeTimer = null;
+    let gazeDirection = "centered";
 
-    webgazer.setGazeListener((data, timestamp) => {
-      if (data && data.x && isFormReady()) {
+    webgazer.setGazeListener((data) => {
+      if (data && isFormReady()) {
         const screenCenterX = window.innerWidth / 2;
-        const gazeOffset = Math.abs(data.x - screenCenterX);
-        gazeStatus = gazeOffset > 150 ? "off-center" : "centered";
+        const offset = Math.abs(data.x - screenCenterX);
 
-        const requiredHoldTime = gazeStatus === "centered" ? 3000 : 2000;
+        gazeDirection = offset > 150 ? "off-center" : "centered";
 
-        if (!pauseStart) {
-          pauseStart = timestamp;
-          updateStatus(`Gaze detected (${gazeStatus}). Hold still...`);
-        } else if (timestamp - pauseStart > requiredHoldTime) {
-          updateStatus("Auto-generating based on gaze...");
-          fetchAbstract(gazeStatus);
-          pauseStart = null;
-        }
-      } else {
-        pauseStart = null;
+        clearTimeout(gazeTimer);
+        gazeTimer = setTimeout(() => {
+          updateStatus(`Gaze detected: ${gazeDirection}. Generating...`);
+          fetchAbstract(gazeDirection);
+        }, gazeDirection === "centered" ? 3000 : 2000);
       }
     }).begin();
   } else {
