@@ -1,53 +1,121 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+import random
 
 app = Flask(__name__)
-# Allow requests from anywhere (change "*" to your Odoo domain if needed)
-CORS(app, resources={r"/*": {"origins": "*"}})
+CORS(app)
 
-# Hardcoded UG and PG variations
-variations = {
+# Variation storage tracker
+last_used = {"UG": {}, "PG": {}}
+
+# Abstracts data
+abstracts_data = {
     "UG": {
-        "AI": ("AI enables automation and problem-solving capabilities that enhance efficiency across industries...",
-               "In conclusion, AI enables automation and problem-solving capabilities that enhance efficiency across industries... This emphasizes the significance of AI in modern applications."),
-        "Data Science": ("Data Science involves extracting knowledge and insights from structured and unstructured data...",
-                         "In conclusion, Data Science enables evidence-based decision-making and innovation across domains.")
-        # Add all remaining UG streams...
+        "AI": [
+            "AI enables automation and problem-solving capabilities that enhance efficiency across industries...",
+            "Artificial Intelligence empowers systems to learn from data, improving decision-making processes...",
+            "AI supports innovative solutions that transform user experiences and streamline operations...",
+            "With AI, machines can simulate human intelligence for tasks like vision, speech, and decision-making...",
+            "AI bridges technology and creativity, enabling personalized and adaptive systems..."
+        ],
+        "Data Science": [
+            "Data Science extracts meaningful patterns from large datasets to support informed decision-making...",
+            "By combining statistics and computing, Data Science transforms raw data into valuable insights...",
+            "Data Science leverages machine learning and analytics to drive innovation across domains...",
+            "The role of Data Science is pivotal in predicting trends and optimizing processes...",
+            "Data Science empowers businesses to unlock hidden opportunities within complex data..."
+        ],
+        "ML": [
+            "Machine Learning enables systems to learn patterns from data without explicit programming...",
+            "ML algorithms adapt to data changes, offering dynamic and accurate predictions...",
+            "Through ML, automation reaches new heights in fields like healthcare and finance...",
+            "ML applications span from recommendation engines to fraud detection systems...",
+            "With ML, machines continuously improve performance over time..."
+        ],
+        "CSE": [
+            "Computer Science and Engineering underpins the design and development of cutting-edge technologies...",
+            "CSE integrates theory and practice to solve computational problems efficiently...",
+            "From algorithms to architecture, CSE drives innovation in every tech domain...",
+            "CSE enables the creation of secure, scalable, and high-performance systems...",
+            "The discipline of CSE shapes the foundation of modern computing..."
+        ],
+        "Cybersecurity": [
+            "Cybersecurity safeguards systems and data against evolving digital threats...",
+            "The field focuses on preventing unauthorized access and ensuring data integrity...",
+            "Cybersecurity combines technology and strategy to protect sensitive information...",
+            "From encryption to monitoring, Cybersecurity defends against cyber risks...",
+            "Cybersecurity awareness is vital to maintaining trust in digital interactions..."
+        ]
     },
     "PG": {
-        "AI": ("Advanced AI systems leverage deep learning and reinforcement learning to solve complex problems...",
-               "In conclusion, advanced AI techniques expand possibilities in automation, decision-making, and predictive analytics."),
-        "Data Science": ("Techniques such as Bayesian modeling and feature engineering enhance predictive accuracy in large datasets...",
-                         "In conclusion, Techniques such as Bayesian modeling and feature engineering enhance predictive accuracy in large datasets... This emphasizes the significance of Data Science in modern applications.")
-        # Add all remaining PG streams...
+        "AI": [
+            "Advanced AI employs deep neural architectures and reinforcement learning to solve domain-specific challenges with precision...",
+            "AI research integrates symbolic reasoning with machine learning for explainable and robust solutions...",
+            "Generative AI models transform creative industries by producing original, high-quality content from minimal input...",
+            "AI optimization techniques enhance scalability and efficiency in high-dimensional problem spaces...",
+            "Cutting-edge AI integrates multimodal data processing for comprehensive situational awareness..."
+        ],
+        "Data Science": [
+            "Techniques such as Bayesian modeling and feature engineering enhance predictive accuracy in large datasets...",
+            "Data Science pipelines incorporate ETL, distributed computing, and statistical learning for robust analytics...",
+            "Advanced clustering and dimensionality reduction techniques reveal hidden patterns in complex data...",
+            "Big Data ecosystems integrate Spark, Hadoop, and cloud platforms for scalable analytics...",
+            "Domain-specific Data Science models leverage contextual knowledge for superior insights..."
+        ],
+        "ML": [
+            "State-of-the-art ML models utilize ensemble learning and meta-learning for superior generalization...",
+            "ML research explores explainability to enhance trust in black-box predictive systems...",
+            "Transfer learning accelerates model performance in low-data regimes across specialized domains...",
+            "Federated learning frameworks ensure privacy-preserving collaborative model training...",
+            "Hyperparameter optimization techniques refine ML models for peak accuracy..."
+        ],
+        "CSE": [
+            "Advanced CSE encompasses parallel computing, algorithmic complexity, and hardware-software co-design...",
+            "CSE research integrates blockchain architectures for secure distributed systems...",
+            "Edge computing solutions in CSE minimize latency for real-time applications...",
+            "Compiler optimization techniques enhance performance in domain-specific computing tasks...",
+            "CSE methodologies drive advancements in quantum-safe cryptographic protocols..."
+        ],
+        "Cybersecurity": [
+            "Advanced Cybersecurity integrates AI-driven anomaly detection with zero-trust architectures...",
+            "Post-quantum cryptography research addresses future-proof secure communication...",
+            "Threat intelligence platforms aggregate and analyze multi-source cyber threat data...",
+            "Blockchain-based identity management enhances user privacy and security...",
+            "Cybersecurity automation frameworks streamline vulnerability detection and remediation..."
+        ]
     }
 }
 
-@app.route("/suggest", methods=["POST"])
+@app.route('/suggest', methods=['POST'])
 def suggest():
-    try:
-        data = request.get_json(force=True) or {}
-        name = data.get("name", "")
-        age = data.get("age", "")
-        gender = data.get("gender", "")
-        stream = data.get("stream", "")
-        academic_level = data.get("academicLevel", "")
-        gaze_status = data.get("gazeStatus", "")
-        abstract_text = data.get("abstract", "")
+    data = request.json
+    stream = data.get("stream")
+    academic_level = data.get("academicLevel")
+    gaze_status = data.get("gazeStatus", "centered")
 
-        if not (name and age and gender and stream and academic_level and abstract_text):
-            return jsonify({"error": "missing_fields"}), 400
+    if not stream or not academic_level:
+        return jsonify({"error": "Missing required fields"}), 400
 
-        stream_variations = variations.get(academic_level.upper(), {})
-        if stream in stream_variations:
-            abstract, conclusion = stream_variations[stream]
-        else:
-            abstract = f"Default abstract for {stream} at {academic_level} level."
-            conclusion = f"Default conclusion for {stream} at {academic_level} level."
+    variations = abstracts_data[academic_level][stream]
 
-        return jsonify({"abstract": abstract, "conclusion": conclusion}), 200
-    except Exception as e:
-        return jsonify({"error": "server_error", "detail": str(e)}), 500
+    # Gaze logic
+    if gaze_status == "off-center":
+        selected = variations[0]  # simpler/shorter version
+    else:
+        # Ensure no consecutive repetition
+        prev_index = last_used[academic_level].get(stream, -1)
+        idx_choices = [i for i in range(len(variations)) if i != prev_index]
+        idx = random.choice(idx_choices)
+        selected = variations[idx]
+        last_used[academic_level][stream] = idx
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    abstract = selected
+    conclusion = f"In conclusion, {selected} This emphasizes the significance of {stream} in modern applications."
+
+    return jsonify({
+        "abstract": abstract,
+        "conclusion": conclusion
+    })
+
+if __name__ == '__main__':
+    app.run(debug=True)
