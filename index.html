@@ -22,15 +22,28 @@
       overflow: hidden;
       box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
     }
-    .left, .right { padding: 30px; }
+    .left, .right {
+      padding: 30px;
+    }
     .left {
-      width: 45%;
+      width: 40%;
       background: #181818;
       border-right: 1px solid #333;
     }
-    .right { width: 55%; }
-    h2 { text-align: center; margin-bottom: 20px; color: #fff; }
-    label { font-weight: 600; display: block; margin-top: 15px; color: #ccc; }
+    .right {
+      width: 60%;
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #fff;
+    }
+    label {
+      font-weight: 600;
+      display: block;
+      margin-top: 15px;
+      color: #ccc;
+    }
     input, select, textarea {
       width: 100%;
       padding: 10px;
@@ -41,7 +54,10 @@
       background: #2a2a2a;
       color: white;
     }
-    textarea { resize: vertical; height: 100px; }
+    textarea {
+      resize: vertical;
+      height: 100px;
+    }
     button {
       width: 100%;
       margin-top: 20px;
@@ -54,7 +70,10 @@
       font-size: 16px;
       cursor: pointer;
     }
-    button:disabled { background: #444; cursor: not-allowed; }
+    button:disabled {
+      background: #444;
+      cursor: not-allowed;
+    }
     .output-box {
       background: #222;
       padding: 15px;
@@ -63,8 +82,16 @@
       white-space: pre-line;
       color: #ddd;
     }
-    #status { color: #00ff99; font-weight: bold; margin-top: 10px; }
-    .word-info { font-size: 13px; color: #888; margin-top: 4px; text-align: right; }
+    #status {
+      font-weight: bold;
+      margin-top: 10px;
+    }
+    .word-info {
+      font-size: 13px;
+      color: #888;
+      margin-top: 4px;
+      text-align: right;
+    }
   </style>
 </head>
 <body>
@@ -93,9 +120,6 @@
       <option value="">Select</option>
       <option value="AI">AI</option>
       <option value="Data Science">Data Science</option>
-      <option value="ML">ML</option>
-      <option value="CSE">CSE</option>
-      <option value="Cybersecurity">Cybersecurity</option>
     </select>
 
     <label>Academic Level:</label>
@@ -126,13 +150,11 @@
 </div>
 
 <script>
+  const BACKEND_URL = "https://abstract-suggester-backend.onrender.com/suggest";
   const abstractInput = document.getElementById("abstractInput");
-  const streamInput = document.getElementById("stream");
-  const academicInput = document.getElementById("academicLevel");
   const submitBtn = document.getElementById("submitBtn");
-  const statusDiv = document.getElementById("status");
   const wordCounter = document.getElementById("wordCounter");
-  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  const statusDiv = document.getElementById("status");
 
   function countWords(str) {
     return str.trim().split(/\s+/).filter(word => word.length > 0).length;
@@ -142,84 +164,74 @@
     const name = document.getElementById("name").value.trim();
     const age = document.getElementById("age").value.trim();
     const gender = document.getElementById("gender").value;
-    const stream = streamInput.value;
-    const academicLevel = academicInput.value;
+    const stream = document.getElementById("stream").value;
+    const academicLevel = document.getElementById("academicLevel").value;
     const words = countWords(abstractInput.value);
     return name && age && gender && stream && academicLevel && words >= 15;
   }
 
-  function updateStatus(msg) {
+  function updateStatus(msg, ok = true) {
+    statusDiv.style.color = ok ? "#00ff99" : "#ff6b6b";
     statusDiv.innerText = msg;
   }
 
-  function fetchAbstract(gazeStatus = "centered") {
-    const data = {
+  async function fetchAbstract(gazeStatus = "centered") {
+    const payload = {
       name: document.getElementById("name").value,
       age: document.getElementById("age").value,
       gender: document.getElementById("gender").value,
-      stream: streamInput.value,
-      academicLevel: academicInput.value,
-      abstract: abstractInput.value.trim(),
-      gazeStatus: gazeStatus
+      stream: document.getElementById("stream").value,
+      academicLevel: document.getElementById("academicLevel").value,
+      abstract: document.getElementById("abstractInput").value.trim(),
+      gazeStatus
     };
 
     updateStatus("Fetching suggestion...");
 
-    fetch("https://abstract-suggester-backend.onrender.com/suggest", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data)
-    })
-    .then(res => res.json())
-    .then(res => {
-      document.getElementById("abstractOutput").innerText = res.abstract || "-";
-      document.getElementById("conclusionOutput").innerText = res.conclusion || "-";
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 12000);
+
+    try {
+      const res = await fetch(BACKEND_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        mode: "cors",
+        body: JSON.stringify(payload),
+        signal: ctrl.signal
+      });
+      clearTimeout(t);
+
+      const text = await res.text();
+      let data;
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch (e) {
+        throw new Error(`Non-JSON response (${res.status}): ${text.slice(0, 200)}`);
+      }
+
+      if (!res.ok) {
+        throw new Error(data.error || data.detail || `${res.status} ${res.statusText}`);
+      }
+
+      document.getElementById("abstractOutput").innerText = data.abstract || "-";
+      document.getElementById("conclusionOutput").innerText = data.conclusion || "-";
       document.getElementById("abstractOutput").style.display = "block";
       document.getElementById("conclusionOutput").style.display = "block";
       updateStatus("Generated successfully!");
-    })
-    .catch(() => updateStatus("Error fetching suggestion."));
+    } catch (err) {
+      updateStatus(`Error fetching suggestion: ${err.message}`, false);
+      console.error("fetchAbstract error:", err);
+    }
   }
 
-  function resetOutputs() {
-    document.getElementById("abstractOutput").style.display = "none";
-    document.getElementById("conclusionOutput").style.display = "none";
-    updateStatus("Waiting for input...");
-  }
-
-  // Input listeners
   ["input", "change"].forEach(evt => {
     document.querySelectorAll("#name, #age, #gender, #stream, #academicLevel, #abstractInput")
       .forEach(el => el.addEventListener(evt, () => {
         const wordCount = countWords(abstractInput.value);
         wordCounter.textContent = `Please write at least 15 words (Words: ${wordCount})`;
         submitBtn.disabled = !isFormReady();
-        resetOutputs();
       }));
   });
-
-  // WebGazer logic
-  if (!isMobile) {
-    let gazeTimer = null;
-    let gazeDirection = "centered";
-
-    webgazer.setGazeListener((data) => {
-      if (data && isFormReady()) {
-        const screenCenterX = window.innerWidth / 2;
-        const offset = Math.abs(data.x - screenCenterX);
-
-        gazeDirection = offset > 150 ? "off-center" : "centered";
-
-        clearTimeout(gazeTimer);
-        gazeTimer = setTimeout(() => {
-          updateStatus(`Gaze detected: ${gazeDirection}. Generating...`);
-          fetchAbstract(gazeDirection);
-        }, gazeDirection === "centered" ? 3000 : 2000);
-      }
-    }).begin();
-  } else {
-    updateStatus("Gaze detection disabled on mobile. Use button.");
-  }
 </script>
 </body>
 </html>
