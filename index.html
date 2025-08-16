@@ -1,349 +1,128 @@
+<!-- Smart Abstract & Conclusion Generator – Final Odoo Version -->
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Smart Abstract Generator</title>
-
-  <!-- WebGazer -->
-  <script src="https://webgazer.cs.brown.edu/webgazer.js"></script>
-
+  <meta charset="UTF-8">
+  <title>Smart Abstract & Conclusion Generator</title>
   <style>
-    :root{
-      --bg:#0e0f12;
-      --panel:#171a1f;
-      --panel2:#13161a;
-      --border:#2a2f36;
-      --text:#e9eef5;
-      --muted:#a7b0bc;
-      --accent:#4da3ff;
-      --accent-weak:#2b6bb3;
-      --success:#2dd4bf;
-      --warn:#f59e0b;
-      --danger:#ef4444;
-    }
-
-    *{box-sizing:border-box}
-    html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
-
-    .wrap{
-      max-width:1200px;margin:32px auto;padding:0 16px;
-    }
-    .card{
-      background:linear-gradient(180deg,var(--panel),var(--panel2));
-      border:1px solid var(--border);
-      border-radius:14px;
-      box-shadow:0 20px 50px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.03);
-      overflow:hidden;
-    }
-    .header{
-      padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between
-    }
-    .title{font-size:20px;font-weight:700;letter-spacing:.2px}
-    .hint{font-size:13px;color:var(--muted)}
-    .grid{
-      display:flex;gap:0;border-top:1px solid var(--border)
-    }
-    .col{
-      width:50%;padding:22px;border-right:1px solid var(--border)
-    }
-    .col:last-child{border-right:none}
-    h3{margin:0 0 12px 0;font-size:16px;letter-spacing:.2px}
-
-    label{display:block;margin:12px 0 6px 0;font-size:13px;color:var(--muted)}
-    input,select,textarea{
-      width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--border);
-      background:#0d1014;color:var(--text);outline:none;font-size:14px
-    }
-    input:focus,select:focus,textarea:focus{border-color:var(--accent)}
-    textarea{min-height:110px;resize:vertical}
-
-    .row-2{display:flex;gap:12px}
-    .row-2 > *{flex:1}
-
-    .word-info{font-size:12px;color:var(--muted);margin-top:6px;text-align:right}
-
-    .btn{
-      width:100%;margin-top:14px;padding:12px 14px;border:none;border-radius:10px;
-      background:linear-gradient(180deg,var(--accent),var(--accent-weak));
-      color:white;font-weight:700;letter-spacing:.3px;cursor:pointer
-    }
-    .btn:disabled{opacity:.5;cursor:not-allowed}
-
-    .status{margin-top:10px;font-size:13px;color:var(--success)}
-
-    .output{
-      background:#0d1014;border:1px solid var(--border);border-left:4px solid var(--accent);
-      border-radius:10px;padding:14px;white-space:pre-line;color:#d9e2ec
-    }
-    .stack{display:grid;gap:14px}
-    .badge{
-      display:inline-block;padding:3px 8px;border-radius:999px;background:#0d2238;border:1px solid #12375a;color:#cfe6ff;
-      font-size:12px;margin-left:8px;vertical-align:middle
-    }
-
-    /* Mobile */
-    @media (max-width: 900px){
-      .grid{flex-direction:column}
-      .col{width:100%;border-right:none;border-bottom:1px solid var(--border)}
-      .col:last-child{border-bottom:none}
-    }
+    body{background:#111;color:#eee;font-family:sans-serif;margin:0;padding:20px}
+    .wrap{max-width:1000px;margin:auto;background:#1a1d22;padding:20px;border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,.4)}
+    h2{margin-top:0;color:#4da3ff}
+    label{display:block;margin-top:10px;font-size:14px;color:#ccc}
+    input,select,textarea{width:100%;padding:10px;border-radius:8px;border:1px solid #333;background:#0d1014;color:#eee;font-size:14px}
+    textarea{min-height:100px;resize:vertical}
+    button{margin-top:15px;width:100%;padding:12px;font-size:15px;font-weight:bold;color:#fff;background:linear-gradient(180deg,#4da3ff,#2b6bb3);border:none;border-radius:8px;cursor:pointer}
+    button:disabled{opacity:.5;cursor:not-allowed}
+    .status{margin-top:8px;font-size:13px;color:#0f0}
+    .output{margin-top:15px;background:#0d1014;border:1px solid #333;border-left:4px solid #4da3ff;padding:12px;border-radius:8px;white-space:pre-line;display:none}
+    .warn{color:#f59e0b}
+    .err{color:#ef4444}
+    .cam{margin-top:15px;position:relative;height:180px;background:#000;border-radius:8px;overflow:hidden}
+    #webgazerVideoFeed{position:absolute;top:0;left:0;width:100%!important;height:100%!important;object-fit:cover!important;transform:scaleX(-1)}
+    #webgazerFaceOverlay,#webgazerFaceFeedbackBox,#webgazerGazeDot{position:absolute;top:0;left:0;z-index:5}
+    #webgazerGazeDot{display:none!important}
+    .gaze-status{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.6);color:#fff;padding:4px 8px;border-radius:6px;font-size:13px}
   </style>
 </head>
 <body>
   <div class="wrap">
-    <div class="card">
-      <div class="header">
-        <div class="title">Smart Abstract & Conclusion Generator</div>
-        <div class="hint">Gaze: look straight ~3s for precise, off-center ~2s for simpler. Button always works.</div>
-      </div>
+    <h2>Smart Abstract & Conclusion Generator</h2>
+    <p style="font-size:13px;color:#aaa">Gaze center for ~2s → auto-generate. Button always works.</p>
 
-      <div class="grid">
-        <!-- LEFT: Form -->
-        <div class="col">
-          <h3>User Details <span class="badge">Dark • Minimal</span></h3>
-
-          <label for="name">Name</label>
-          <input id="name" type="text" placeholder="Your full name"/>
-
-          <div class="row-2">
-            <div>
-              <label for="age">Age</label>
-              <input id="age" type="number" placeholder="18"/>
-            </div>
-            <div>
-              <label for="gender">Gender</label>
-              <select id="gender">
-                <option value="">Select</option>
-                <option>Male</option>
-                <option>Female</option>
-                <option>Other</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="row-2">
-            <div>
-              <label for="stream">Stream</label>
-              <select id="stream">
-                <option value="">Select</option>
-                <option value="AI">AI</option>
-                <option value="Data Science">Data Science</option>
-                <option value="ML">ML</option>
-                <option value="CSE">CSE</option>
-                <option value="Cybersecurity">Cybersecurity</option>
-              </select>
-            </div>
-            <div>
-              <label for="academicLevel">Academic Level</label>
-              <select id="academicLevel">
-                <option value="">Select</option>
-                <option value="UG">Undergraduate</option>
-                <option value="PG">Postgraduate</option>
-              </select>
-            </div>
-          </div>
-
-          <label for="abstractInput">Write your Abstract (min 15 words)</label>
-          <textarea id="abstractInput" placeholder="Describe your topic and goals..."></textarea>
-          <div class="word-info" id="wordCounter">Please write at least 15 words (Words: 0)</div>
-
-          <button id="submitBtn" class="btn" disabled>Generate Abstract & Conclusion</button>
-          <div class="status" id="status">Waiting for input…</div>
-        </div>
-
-        <!-- RIGHT: Outputs -->
-        <div class="col">
-          <h3>Generated Content</h3>
-
-          <div>
-            <label>Suggested Abstract</label>
-            <div id="abstractOutput" class="output" style="display:none;"></div>
-          </div>
-
-          <div class="stack">
-            <div>
-              <label>Suggested Conclusion</label>
-              <div id="conclusionOutput" class="output" style="display:none;"></div>
-            </div>
-          </div>
-        </div>
-      </div>
+    <div class="cam" id="camBox">
+      <div class="gaze-status">Gaze: <span id="gazeVal" style="color:yellow">Detecting…</span></div>
     </div>
+
+    <label>Name</label>
+    <input id="name" type="text" placeholder="Your full name">
+
+    <label>Age</label>
+    <input id="age" type="number" placeholder="20">
+
+    <label>Gender</label>
+    <select id="gender">
+      <option value="">Select</option><option>Male</option><option>Female</option><option>Other</option>
+    </select>
+
+    <label>Stream</label>
+    <select id="stream">
+      <option value="">Select</option>
+      <option>AI</option>
+      <option>ML</option>
+      <option>CSE</option>
+      <option>Cybersecurity</option>
+      <option>Data Science</option>
+      <option>Electronics</option>
+    </select>
+
+    <label>Academic Level</label>
+    <select id="level">
+      <option value="">Select</option>
+      <option value="UG">Undergraduate</option>
+      <option value="PG">Postgraduate</option>
+    </select>
+
+    <label>Write your Abstract (min 15 words)</label>
+    <textarea id="abstract" placeholder="Describe your topic and goals..."></textarea>
+    <div id="wordCount" style="font-size:12px;color:#aaa;margin-top:4px">Words: 0</div>
+
+    <button id="genBtn" disabled>Generate Abstract & Conclusion</button>
+    <div id="status" class="status">Waiting for input…</div>
+
+    <div class="output" id="outAbs"></div>
+    <div class="output" id="outCon"></div>
   </div>
 
-<script>
-  // ====== DOM refs ======
-  const $ = (id) => document.getElementById(id);
-  const nameEl = $("name");
-  const ageEl = $("age");
-  const genderEl = $("gender");
-  const streamEl = $("stream");
-  const levelEl = $("academicLevel");
-  const inputEl = $("abstractInput");
-  const wordCounterEl = $("wordCounter");
-  const submitBtn = $("submitBtn");
-  const statusEl = $("status");
-  const abstractOut = $("abstractOutput");
-  const conclusionOut = $("conclusionOutput");
+  <script>
+    const $=id=>document.getElementById(id);
+    const nameEl=$("name"),ageEl=$("age"),genderEl=$("gender"),
+          streamEl=$("stream"),levelEl=$("level"),absEl=$("abstract"),
+          btnEl=$("genBtn"),statusEl=$("status"),
+          outAbs=$("outAbs"),outCon=$("outCon"),wordEl=$("wordCount"),
+          gazeVal=$("gazeVal");
 
-  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const BACKEND_URL="https://abstract-suggester-backend.onrender.com/suggest";
 
-  // ====== Helpers ======
-  const countWords = (s) => s.trim().split(/\s+/).filter(Boolean).length;
-
-  function isFormReady() {
-    const ok =
-      nameEl.value.trim() &&
-      ageEl.value.trim() &&
-      genderEl.value &&
-      streamEl.value &&
-      levelEl.value &&
-      countWords(inputEl.value) >= 15;
-    return !!ok;
-  }
-
-  function setStatus(msg, color="var(--success)"){
-    statusEl.textContent = msg;
-    statusEl.style.color = color;
-  }
-
-  function resetOutputs() {
-    abstractOut.style.display = "none";
-    conclusionOut.style.display = "none";
-    abstractOut.textContent = "";
-    conclusionOut.textContent = "";
-  }
-
-  function refreshGate(){
-    const wc = countWords(inputEl.value);
-    wordCounterEl.textContent = `Please write at least 15 words (Words: ${wc})`;
-    submitBtn.disabled = !isFormReady();
-  }
-
-  // Reset outputs whenever user changes inputs (so stale text disappears)
-  ["input","change"].forEach(evt => {
-    [nameEl, ageEl, genderEl, streamEl, levelEl, inputEl].forEach(el => {
-      el.addEventListener(evt, () => {
-        refreshGate();
-        resetOutputs();
-        if(evt === "change" && (el === streamEl || el === levelEl)){
-          setStatus("Waiting for input…");
-        }
-      });
-    });
-  });
-
-  // ====== Backend call ======
-  const BACKEND_URL = "https://abstract-suggester-backend.onrender.com/suggest"; // change if needed
-
-  async function fetchAbstract(gazeStatus="none"){
-    if(!isFormReady()){
-      setStatus("Form incomplete. Fill all fields and reach 15+ words.", "var(--warn)");
-      return;
+    const countWords=s=>s.trim().split(/\s+/).filter(Boolean).length;
+    function formReady(){
+      return nameEl.value.trim()&&ageEl.value.trim()&&genderEl.value&&streamEl.value&&levelEl.value&&countWords(absEl.value)>=15;
     }
-    setStatus("Generating…");
-
-    try{
-      const payload = {
-        name: nameEl.value.trim(),
-        age: ageEl.value.trim(),
-        gender: genderEl.value,
-        stream: streamEl.value,
-        academicLevel: levelEl.value,
-        abstract: inputEl.value.trim(),
-        gazeStatus: gazeStatus // "centered" | "off-center" | "none"
-      };
-
-      const res = await fetch(BACKEND_URL, {
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body: JSON.stringify(payload)
-      });
-
-      const data = await res.json();
-      if(!res.ok){
-        throw new Error(data.error || "Server error");
-      }
-
-      abstractOut.textContent = data.abstract || "-";
-      conclusionOut.textContent = data.conclusion || "-";
-      abstractOut.style.display = "block";
-      conclusionOut.style.display = "block";
-      setStatus(gazeStatus === "centered" ? "Precise suggestion (center gaze) ready!" :
-                gazeStatus === "off-center" ? "Simpler suggestion (off-center gaze) ready!" :
-                "Suggestion ready!");
-    }catch(err){
-      console.error(err);
-      setStatus("Error fetching suggestion.", "var(--danger)");
+    function refreshGate(){
+      const c=countWords(absEl.value);
+      wordEl.textContent=`Words: ${c}`;
+      btnEl.disabled=!formReady();
     }
-  }
+    ["input","change"].forEach(e=>[nameEl,ageEl,genderEl,streamEl,levelEl,absEl].forEach(el=>el.addEventListener(e,refreshGate)));
 
-  submitBtn.addEventListener("click", () => fetchAbstract("none"));
-
-  // ====== Gaze logic (desktop only) ======
-  (function initGaze(){
-    if(isMobile){
-      setStatus("Mobile detected. Gaze disabled—use the button.");
-      return;
+    async function fetchSuggestion(gaze){
+      if(!formReady()){statusEl.textContent="Fill all fields with 15+ words";statusEl.className="status warn";return;}
+      statusEl.textContent="Generating…";statusEl.className="status";
+      try{
+        const payload={name:nameEl.value.trim(),age:ageEl.value.trim(),gender:genderEl.value,stream:streamEl.value,academicLevel:levelEl.value,abstract:absEl.value.trim(),gazeStatus:gaze};
+        const res=await fetch(BACKEND_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+        const data=await res.json();if(!res.ok)throw new Error(data.error||"Server error");
+        outAbs.textContent="Abstract: "+data.abstract;outCon.textContent="Conclusion: "+data.conclusion;
+        outAbs.style.display="block";outCon.style.display="block";statusEl.textContent="Done!";
+      }catch(e){statusEl.textContent="Error: "+(e.message||"failed");statusEl.className="status err";}
     }
-    if(typeof webgazer === "undefined"){
-      setStatus("WebGazer not available. Button will still work.", "var(--warn)");
-      return;
+    btnEl.onclick=()=>fetchSuggestion("manual");
+
+    // --- Webgazer ---
+    let lastDir=null,startTs=0,triggered=false;
+    function gazeLogic(x){
+      const w=window.innerWidth;const dir=(x<w*0.35)?"left":(x>w*0.65)?"right":"center";
+      if(dir!==lastDir){lastDir=dir;startTs=Date.now();triggered=false;}
+      const elapsed=(Date.now()-startTs)/1000;
+      gazeVal.textContent=dir;gazeVal.style.color=dir==="center"?"lime":dir==="left"||dir==="right"?"orange":"red";
+      if(dir==="center"&&elapsed>=2&&!triggered&&formReady()){triggered=true;fetchSuggestion("centered");}
     }
-
-    let pauseStart = null;
-    let lastHumanActivity = Date.now();
-
-    // Human activity cancels the pause timer
-    ["keydown","mousemove","scroll","touchstart"].forEach(evt =>
-      window.addEventListener(evt, () => lastHumanActivity = Date.now())
-    );
-
-    const centerWindowPx = Math.max(120, Math.min(window.innerWidth, window.innerHeight) * 0.18); // tighter center
-    const offCenterThreshold = centerWindowPx; // > this = off-center
-
-    webgazer.setGazeListener((data, ts) => {
-      // Require form ready and 15+ words and no recent human activity (2s)
-      const inactive = Date.now() - lastHumanActivity > 2000;
-      if(!data || !isFormReady() || !inactive){ pauseStart = null; return; }
-
-      const cx = window.innerWidth / 2;
-      const dx = Math.abs(data.x - cx);
-
-      // Determine gaze bucket
-      const gazeStatus = dx <= centerWindowPx ? "centered" : "off-center";
-      const holdMs = gazeStatus === "centered" ? 3000 : 2000;
-
-      if(pauseStart === null){
-        pauseStart = ts;
-        setStatus(gazeStatus === "centered"
-          ? "Center gaze detected. Hold ~3s to auto-generate…"
-          : "Off-center gaze detected. Hold ~2s for a simpler suggestion…",
-          gazeStatus === "centered" ? "var(--success)" : "var(--warn)"
-        );
-      }else{
-        if(ts - pauseStart >= holdMs){
-          // Fire once, then reset timer
-          fetchAbstract(gazeStatus);
-          pauseStart = null;
-          lastHumanActivity = Date.now(); // prevent instant re-trigger
-        }
-      }
-    }).begin();
-
-    // Make the overlay tiny so it doesn't distract
-    try{
-      webgazer.showPredictionPoints(true);
-      webgazer.showVideoPreview(false).showFaceOverlay(false).showFaceFeedbackBox(false);
-    }catch(e){
-      // Some builds don't expose these toggles; it's fine.
+    function initGaze(){
+      const s=document.createElement("script");s.src="https://webgazer.cs.brown.edu/webgazer.js";s.async=true;
+      s.onload=()=>{try{webgazer.setGazeListener(d=>{if(d)gazeLogic(d.x)}).begin();}catch(e){console.error(e)}};
+      document.head.appendChild(s);
     }
-  })();
-
-  // Init
-  refreshGate();
-  setStatus("Waiting for input…");
-</script>
+    refreshGate();initGaze();
+  </script>
 </body>
 </html>
