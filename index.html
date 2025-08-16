@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -230,34 +229,26 @@
   // WebGazer logic (desktop only)
   if (!isMobile) {
     let pauseStart = null;
-    let lastActivity = Date.now();
-
-    window.addEventListener('keydown', () => lastActivity = Date.now());
-    window.addEventListener('mousemove', () => lastActivity = Date.now());
+    let gazeStatus = "centered";
 
     webgazer.setGazeListener((data, timestamp) => {
-      const inactive = Date.now() - lastActivity > 5000;
-      if (data && data.x && data.y && isFormReady() && inactive) {
+      if (data && data.x && isFormReady()) {
         const screenCenterX = window.innerWidth / 2;
         const gazeOffset = Math.abs(data.x - screenCenterX);
-        let gazeStatus = "centered";
-        if (gazeOffset > 150) { // adjust for strictness
-          gazeStatus = "off-center";
-        }
+        gazeStatus = gazeOffset > 150 ? "off-center" : "centered";
+
+        const requiredHoldTime = gazeStatus === "centered" ? 3000 : 2000;
 
         if (!pauseStart) {
           pauseStart = timestamp;
-          updateStatus("Gaze detected. Hold still...");
-        } else if (timestamp - pauseStart > 5000) {
+          updateStatus(`Gaze detected (${gazeStatus}). Hold still...`);
+        } else if (timestamp - pauseStart > requiredHoldTime) {
           updateStatus("Auto-generating based on gaze...");
           fetchAbstract(gazeStatus);
           pauseStart = null;
         }
       } else {
-        if (pauseStart !== null) {
-          pauseStart = null;
-          updateStatus("Waiting for gaze...");
-        }
+        pauseStart = null;
       }
     }).begin();
   } else {
@@ -266,4 +257,3 @@
 </script>
 </body>
 </html>
-
