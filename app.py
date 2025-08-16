@@ -246,14 +246,18 @@ def choose_variant(level, stream):
     return options[idx]
 
 def choose_partial(stream):
-    options = PARTIAL_DATA[stream]
-    prev = last_used_partial[stream]
-    choices = [i for i in range(len(options)) if i != prev]
-    idx = random.choice(choices)
-    last_used_partial[stream] = idx
-    return options[idx]
+    return PARTIAL_DATA.get(stream, {"abstract": "Partial abstract.", "conclusion": "Partial conclusion."})
 
-# ----------- ROUTE -----------
+def normalize_stream(stream):
+    if not stream: return None
+    mapping = {
+        "ai": "AI", "ml": "ML", "cse": "CSE", "cybersecurity": "Cybersecurity",
+        "data science": "Data Science", "electronics": "Electronics"
+    }
+    key = stream.strip().lower()
+    return mapping.get(key, stream)
+
+# ----------------- ROUTE -----------------
 @app.route("/suggest", methods=["POST"])
 def suggest():
     data = request.get_json()
@@ -262,7 +266,9 @@ def suggest():
     gaze = data.get("gazeStatus", "none")
 
     stream = normalize_stream(stream_raw)
-    if level not in DATA: level = "UG"
+
+    if level not in DATA:
+        level = "UG"
     if not stream or stream not in DATA[level]:
         return jsonify({"error": "Invalid stream"}), 400
 
@@ -272,8 +278,14 @@ def suggest():
         choice = SIMPLE_DATA
     elif gaze == "partial":
         choice = choose_partial(stream)
-    else:
+    else:  # manual or unknown
         choice = choose_variant(level, stream)
+
+    return jsonify(choice)
+
+# ----------------- MAIN -----------------
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000, ssl_context=("cert.pem", "key.pem"))
 
     return jsonify(choice)
 
