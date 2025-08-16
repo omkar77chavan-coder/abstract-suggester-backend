@@ -2,77 +2,267 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Smart Abstract Generator</title>
+  <script src="https://webgazer.cs.brown.edu/webgazer.js"></script>
   <style>
-    body { font-family: Arial; max-width: 700px; margin: 30px auto; padding: 20px; background: #f5f5f5; }
-    .block { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-    input, select, textarea, button { width: 100%; margin-top: 10px; padding: 10px; font-size: 16px; }
-    h2, h3 { color: #333; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #121212;
+      margin: 0;
+      padding: 20px;
+      color: white;
+    }
+    .container {
+      display: flex;
+      max-width: 1200px;
+      margin: auto;
+      background: #1e1e1e;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.4);
+    }
+    .left, .right {
+      padding: 30px;
+    }
+    .left {
+      width: 40%;
+      background: #1a1a1a;
+      border-right: 1px solid #333;
+    }
+    .right {
+      width: 60%;
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #ffcc00;
+    }
+    label {
+      font-weight: 600;
+      display: block;
+      margin-top: 15px;
+      color: #ddd;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border-radius: 6px;
+      border: 1px solid #444;
+      font-size: 15px;
+      background: #2b2b2b;
+      color: white;
+    }
+    textarea {
+      resize: vertical;
+      height: 100px;
+    }
+    button {
+      width: 100%;
+      margin-top: 20px;
+      background: #ffcc00;
+      color: #121212;
+      font-weight: bold;
+      padding: 12px;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    button:disabled {
+      background: #666;
+      color: #999;
+    }
+    .output-box {
+      background: #2a2a2a;
+      padding: 15px;
+      margin-bottom: 20px;
+      border-left: 5px solid #ffcc00;
+      white-space: pre-line;
+      color: white;
+    }
+    #status {
+      color: #00e676;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+    .word-info {
+      font-size: 13px;
+      color: #bbb;
+      margin-top: 4px;
+      text-align: right;
+    }
   </style>
 </head>
 <body>
-  <div class="block">
-    <h2>Smart Abstract + Conclusion Generator</h2>
-    <input type="text" id="name" placeholder="Name" />
-    <input type="number" id="age" placeholder="Age" />
+
+<div class="container">
+  <!-- LEFT SIDE -->
+  <div class="left">
+    <h2>User Details</h2>
+
+    <label>Name:</label>
+    <input type="text" id="name">
+
+    <label>Age:</label>
+    <input type="number" id="age">
+
+    <label>Gender:</label>
     <select id="gender">
-      <option value="">Select Gender</option>
+      <option value="">Select</option>
       <option>Male</option>
       <option>Female</option>
       <option>Other</option>
     </select>
+
+    <label>Stream:</label>
     <select id="stream">
-      <option value="">Select Your Stream</option>
+      <option value="">Select</option>
       <option value="AI">AI</option>
+      <option value="Data Science">Data Science</option>
       <option value="ML">ML</option>
       <option value="CSE">CSE</option>
-      <option value="Data Science">Data Science</option>
-      <option value="IoT">IoT</option>
+      <option value="Cybersecurity">Cybersecurity</option>
     </select>
-    <textarea id="user_input" placeholder="Type your abstract..." rows="4"></textarea>
-    <button onclick="fetchAbstract()">Optimize Abstract</button>
-    <h3>Suggested Abstract:</h3>
-    <p id="abstract_out"></p>
-    <h3>Suggested Conclusion:</h3>
-    <p id="conclusion_out"></p>
-    <p id="status"></p>
+
+    <label>Academic Level:</label>
+    <select id="academicLevel">
+      <option value="">Select</option>
+      <option value="UG">Undergraduate</option>
+      <option value="PG">Postgraduate</option>
+    </select>
+
+    <label>Write your Abstract:</label>
+    <textarea id="abstractInput" placeholder="Type your abstract here..."></textarea>
+    <div class="word-info" id="wordCounter">Please write at least 15 words (Words: 0)</div>
+
+    <button id="submitBtn" onclick="fetchAbstract()" disabled>Generate Abstract & Conclusion</button>
+    <div id="status">Waiting for input...</div>
   </div>
 
-  <script src="https://webgazer.cs.brown.edu/webgazer.js"></script>
-  <script>
-    let lastTime = Date.now();
+  <!-- RIGHT SIDE -->
+  <div class="right">
+    <h2>Generated Content</h2>
+
+    <label>Suggested Abstract:</label>
+    <div id="abstractOutput" class="output-box" style="display:none;"></div>
+
+    <label>Suggested Conclusion:</label>
+    <div id="conclusionOutput" class="output-box" style="display:none;"></div>
+  </div>
+</div>
+
+<script>
+  const abstractInput = document.getElementById("abstractInput");
+  const streamInput = document.getElementById("stream");
+  const levelInput = document.getElementById("academicLevel");
+  const submitBtn = document.getElementById("submitBtn");
+  const statusDiv = document.getElementById("status");
+  const wordCounter = document.getElementById("wordCounter");
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+  let gazeStatus = "centered"; // default
+
+  function countWords(str) {
+    return str.trim().split(/\s+/).filter(word => word.length > 0).length;
+  }
+
+  function isFormReady() {
+    const name = document.getElementById("name").value.trim();
+    const age = document.getElementById("age").value.trim();
+    const gender = document.getElementById("gender").value;
+    const stream = streamInput.value;
+    const level = levelInput.value;
+    const words = countWords(abstractInput.value);
+    return name && age && gender && stream && level && words >= 15;
+  }
+
+  function updateStatus(msg) {
+    statusDiv.innerText = msg;
+  }
+
+  function fetchAbstract() {
+    const data = {
+      name: document.getElementById("name").value,
+      age: document.getElementById("age").value,
+      gender: document.getElementById("gender").value,
+      stream: streamInput.value,
+      academicLevel: levelInput.value,
+      gazeStatus: gazeStatus,
+      abstract: abstractInput.value.trim()
+    };
+
+    updateStatus("Fetching suggestion...");
+
+    fetch("https://abstract-suggester-backend.onrender.com/suggest", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    })
+    .then(res => res.json())
+    .then(res => {
+      document.getElementById("abstractOutput").innerText = res.abstract || "-";
+      document.getElementById("conclusionOutput").innerText = res.conclusion || "-";
+      document.getElementById("abstractOutput").style.display = "block";
+      document.getElementById("conclusionOutput").style.display = "block";
+      updateStatus("Generated successfully!");
+    })
+    .catch(() => updateStatus("Error fetching suggestion."));
+  }
+
+  function resetOutputs() {
+    document.getElementById("abstractOutput").style.display = "none";
+    document.getElementById("conclusionOutput").style.display = "none";
+  }
+
+  // Input listeners
+  ["input", "change"].forEach(evt => {
+    document.querySelectorAll("#name, #age, #gender, #stream, #academicLevel, #abstractInput")
+      .forEach(el => el.addEventListener(evt, () => {
+        const wordCount = countWords(abstractInput.value);
+        wordCounter.textContent = `Please write at least 15 words (Words: ${wordCount})`;
+        submitBtn.disabled = !isFormReady();
+        resetOutputs();
+      }));
+  });
+
+  // Gaze detection strictness
+  if (!isMobile) {
+    let pauseStart = null;
+    let lastActivity = Date.now();
+
+    window.addEventListener('keydown', () => lastActivity = Date.now());
+    window.addEventListener('mousemove', () => lastActivity = Date.now());
+
     webgazer.setGazeListener((data, timestamp) => {
-      if (data) {
-        const now = Date.now();
-        if (now - lastTime > 3000) {
-          document.getElementById("status").innerText = "👁️ Pause detected. Suggesting content...";
+      const inactive = Date.now() - lastActivity > 5000;
+      if (data && data.x && isFormReady() && inactive) {
+        const screenWidth = window.innerWidth;
+        const centerZoneStart = screenWidth * 0.4;
+        const centerZoneEnd = screenWidth * 0.6;
+
+        gazeStatus = (data.x >= centerZoneStart && data.x <= centerZoneEnd) ? "centered" : "off-center";
+
+        if (!pauseStart) {
+          pauseStart = timestamp;
+          updateStatus("Gaze detected. Hold still...");
+        } else if (timestamp - pauseStart > 5000) {
+          updateStatus("Auto-generating based on gaze...");
           fetchAbstract();
-          lastTime = now;
+          pauseStart = null;
+        }
+      } else {
+        if (pauseStart !== null) {
+          pauseStart = null;
+          updateStatus("Waiting for gaze...");
         }
       }
     }).begin();
-
-    function fetchAbstract() {
-      const stream = document.getElementById("stream").value;
-     fetch("https://abstract-suggester-backend.onrender.com/stream_suggest", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ stream })
-})
-
-      .then(res => res.json())
-      .then(data => {
-        document.getElementById("abstract_out").innerText = data.abstract || "-";
-        document.getElementById("conclusion_out").innerText = data.conclusion || "-";
-        document.getElementById("status").innerText = "✔️ Suggestion ready.";
-      })
-      .catch(err => {
-        document.getElementById("abstract_out").innerText = "Error.";
-        document.getElementById("conclusion_out").innerText = "Error.";
-        document.getElementById("status").innerText = "❌ Failed to fetch.";
-      });
-    }
-  </script>
+  } else {
+    updateStatus("Gaze detection disabled on mobile. Use button.");
+  }
+</script>
 </body>
 </html>
