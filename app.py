@@ -11,7 +11,7 @@ last_used = {
     "PG": {s: None for s in ["AI", "ML", "CSE", "Cybersecurity", "Data Science", "Electronics"]}
 }
 
-# ----------- DATASET -----------
+# ----------- DATASET (UG + PG, long abstracts) -----------
 DATA = {
     "UG": {
         "AI": [
@@ -187,43 +187,45 @@ DATA = {
     }
 }
 
-# ----------- FALLBACKS -----------
+# ----------- SIMPLE FALLBACK (off-center gaze) -----------
 SIMPLE_DATA = {
     "abstract": "A quick overview of the chosen field is provided with simple explanations.",
     "conclusion": "This short conclusion summarizes the key idea in a straightforward way."
 }
 
+# ----------- PARTIAL GAZE DATA (one-liners per stream) -----------
 PARTIAL_DATA = {
-    "AI": {
-        "abstract": "AI exploration was detected but only partially captured, suggesting the basics of intelligent systems.",
-        "conclusion": "Conclusion remains incomplete, hinting at AI’s evolving decision-making ability."
-    },
-    "ML": {
-        "abstract": "Machine Learning focus is partially visible, covering glimpses of data-driven algorithms.",
-        "conclusion": "The conclusion trails off, reflecting incomplete understanding of ML insights."
-    },
-    "CSE": {
-        "abstract": "Computer Science research appears partially framed, with fragments of algorithms and structures noted.",
-        "conclusion": "The takeaway remains incomplete, symbolizing the vastness of CSE."
-    },
-    "Cybersecurity": {
-        "abstract": "Cybersecurity was partly visible, hinting at protection against threats without full clarity.",
-        "conclusion": "Security insights remain half-complete, leaving awareness implied but unfinished."
-    },
-    "Data Science": {
-        "abstract": "Data Science entry is half captured, touching on patterns and insights but lacking detail.",
-        "conclusion": "The conclusion fades midway, reflecting incomplete evidence from data."
-    },
-    "Electronics": {
-        "abstract": "Electronics material is partly seen, suggesting circuits and signals without full connection.",
-        "conclusion": "The conclusion cuts short, symbolizing unfinished circuitry."
-    }
+    "AI": [
+        {"abstract": "AI explores machines that think a little like humans.", "conclusion": "AI opens paths to smarter systems."},
+        {"abstract": "Artificial Intelligence studies decision-making in software.", "conclusion": "AI blends logic with data."}
+    ],
+    "ML": [
+        {"abstract": "Machine Learning finds patterns in data with algorithms.", "conclusion": "ML enables predictive insights."},
+        {"abstract": "ML trains computers to learn from examples.", "conclusion": "It grows smarter with more data."}
+    ],
+    "CSE": [
+        {"abstract": "Computer Science builds foundations for modern computing.", "conclusion": "CSE powers digital innovation."},
+        {"abstract": "CSE teaches coding, logic, and algorithms.", "conclusion": "It underpins all software systems."}
+    ],
+    "Cybersecurity": [
+        {"abstract": "Cybersecurity keeps systems safe from threats.", "conclusion": "It ensures digital trust."},
+        {"abstract": "Cybersecurity guards data and privacy.", "conclusion": "Strong security prevents attacks."}
+    ],
+    "Data Science": [
+        {"abstract": "Data Science extracts knowledge from raw information.", "conclusion": "It drives evidence-based actions."},
+        {"abstract": "Data Science makes sense of large datasets.", "conclusion": "It turns data into insights."}
+    ],
+    "Electronics": [
+        {"abstract": "Electronics studies circuits and devices.", "conclusion": "It enables all digital hardware."},
+        {"abstract": "Electronics powers everyday machines.", "conclusion": "It links theory with technology."}
+    ]
 }
+
+last_used_partial = {s: None for s in PARTIAL_DATA.keys()}
 
 # ----------- HELPERS -----------
 def normalize_stream(stream):
-    if not stream:
-        return None
+    if not stream: return None
     s = stream.strip().lower()
     mapping = {
         "ai": "AI", "artificial intelligence": "AI",
@@ -243,6 +245,14 @@ def choose_variant(level, stream):
     last_used[level][stream] = idx
     return options[idx]
 
+def choose_partial(stream):
+    options = PARTIAL_DATA[stream]
+    prev = last_used_partial[stream]
+    choices = [i for i in range(len(options)) if i != prev]
+    idx = random.choice(choices)
+    last_used_partial[stream] = idx
+    return options[idx]
+
 # ----------- ROUTE -----------
 @app.route("/suggest", methods=["POST"])
 def suggest():
@@ -252,9 +262,7 @@ def suggest():
     gaze = data.get("gazeStatus", "none")
 
     stream = normalize_stream(stream_raw)
-
-    if level not in DATA:
-        level = "UG"
+    if level not in DATA: level = "UG"
     if not stream or stream not in DATA[level]:
         return jsonify({"error": "Invalid stream"}), 400
 
@@ -263,7 +271,7 @@ def suggest():
     elif gaze == "off-center":
         choice = SIMPLE_DATA
     elif gaze == "partial":
-        choice = PARTIAL_DATA.get(stream, SIMPLE_DATA)
+        choice = choose_partial(stream)
     else:
         choice = choose_variant(level, stream)
 
