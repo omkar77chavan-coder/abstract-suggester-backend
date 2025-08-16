@@ -187,37 +187,55 @@ DATA = {
     }
 }
 
-# ----------- SIMPLE FALLBACK for Off-Center Gaze -----------
+# ----------- FALLBACKS -----------
 SIMPLE_DATA = {
     "abstract": "A quick overview of the chosen field is provided with simple explanations.",
     "conclusion": "This short conclusion summarizes the key idea in a straightforward way."
 }
 
-# ----------- HELPER -----------
+PARTIAL_DATA = {
+    "AI": {
+        "abstract": "AI exploration was detected but only partially captured, suggesting the basics of intelligent systems.",
+        "conclusion": "Conclusion remains incomplete, hinting at AI’s evolving decision-making ability."
+    },
+    "ML": {
+        "abstract": "Machine Learning focus is partially visible, covering glimpses of data-driven algorithms.",
+        "conclusion": "The conclusion trails off, reflecting incomplete understanding of ML insights."
+    },
+    "CSE": {
+        "abstract": "Computer Science research appears partially framed, with fragments of algorithms and structures noted.",
+        "conclusion": "The takeaway remains incomplete, symbolizing the vastness of CSE."
+    },
+    "Cybersecurity": {
+        "abstract": "Cybersecurity was partly visible, hinting at protection against threats without full clarity.",
+        "conclusion": "Security insights remain half-complete, leaving awareness implied but unfinished."
+    },
+    "Data Science": {
+        "abstract": "Data Science entry is half captured, touching on patterns and insights but lacking detail.",
+        "conclusion": "The conclusion fades midway, reflecting incomplete evidence from data."
+    },
+    "Electronics": {
+        "abstract": "Electronics material is partly seen, suggesting circuits and signals without full connection.",
+        "conclusion": "The conclusion cuts short, symbolizing unfinished circuitry."
+    }
+}
+
+# ----------- HELPERS -----------
 def normalize_stream(stream):
-    """Normalize stream input to match dataset keys"""
     if not stream:
         return None
     s = stream.strip().lower()
     mapping = {
-        "ai": "AI",
-        "artificial intelligence": "AI",
-        "ml": "ML",
-        "machine learning": "ML",
-        "cse": "CSE",
-        "computer science": "CSE",
-        "cs": "CSE",
-        "cybersecurity": "Cybersecurity",
-        "cyber": "Cybersecurity",
-        "data science": "Data Science",
-        "ds": "Data Science",
-        "electronics": "Electronics",
-        "ece": "Electronics"
+        "ai": "AI", "artificial intelligence": "AI",
+        "ml": "ML", "machine learning": "ML",
+        "cse": "CSE", "computer science": "CSE", "cs": "CSE",
+        "cybersecurity": "Cybersecurity", "cyber": "Cybersecurity",
+        "data science": "Data Science", "ds": "Data Science",
+        "electronics": "Electronics", "ece": "Electronics"
     }
     return mapping.get(s, None)
 
 def choose_variant(level, stream):
-    """Pick random variant without consecutive repeat"""
     options = DATA[level][stream]
     prev = last_used[level][stream]
     choices = [i for i in range(len(options)) if i != prev]
@@ -242,8 +260,10 @@ def suggest():
 
     if gaze == "centered":
         choice = choose_variant(level, stream)
-    elif gaze == "off-center":  # left/right head movement
+    elif gaze == "off-center":
         choice = SIMPLE_DATA
+    elif gaze == "partial":
+        choice = PARTIAL_DATA.get(stream, SIMPLE_DATA)
     else:
         choice = choose_variant(level, stream)
 
@@ -251,4 +271,3 @@ def suggest():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
-
