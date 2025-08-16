@@ -21,38 +21,38 @@
       background: #1e1e1e;
       border-radius: 12px;
       overflow: hidden;
-      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
     }
     .left, .right {
       padding: 30px;
     }
     .left {
-      width: 40%;
-      background: #1a1a1a;
+      width: 45%;
+      background: #181818;
       border-right: 1px solid #333;
     }
     .right {
-      width: 60%;
+      width: 55%;
     }
     h2 {
       text-align: center;
       margin-bottom: 20px;
-      color: #ffcc00;
+      color: #fff;
     }
     label {
       font-weight: 600;
       display: block;
       margin-top: 15px;
-      color: #ddd;
+      color: #ccc;
     }
     input, select, textarea {
       width: 100%;
       padding: 10px;
       margin-top: 5px;
       border-radius: 6px;
-      border: 1px solid #444;
+      border: 1px solid #555;
       font-size: 15px;
-      background: #2b2b2b;
+      background: #2a2a2a;
       color: white;
     }
     textarea {
@@ -62,8 +62,8 @@
     button {
       width: 100%;
       margin-top: 20px;
-      background: #ffcc00;
-      color: #121212;
+      background: #007bff;
+      color: white;
       font-weight: bold;
       padding: 12px;
       border: none;
@@ -72,25 +72,25 @@
       cursor: pointer;
     }
     button:disabled {
-      background: #666;
-      color: #999;
+      background: #444;
+      cursor: not-allowed;
     }
     .output-box {
-      background: #2a2a2a;
+      background: #222;
       padding: 15px;
       margin-bottom: 20px;
-      border-left: 5px solid #ffcc00;
+      border-left: 5px solid #007bff;
       white-space: pre-line;
-      color: white;
+      color: #ddd;
     }
     #status {
-      color: #00e676;
+      color: #00ff99;
       font-weight: bold;
       margin-top: 10px;
     }
     .word-info {
       font-size: 13px;
-      color: #bbb;
+      color: #888;
       margin-top: 4px;
       text-align: right;
     }
@@ -139,7 +139,7 @@
     <div class="word-info" id="wordCounter">Please write at least 15 words (Words: 0)</div>
 
     <button id="submitBtn" onclick="fetchAbstract()" disabled>Generate Abstract & Conclusion</button>
-    <div id="status">Waiting for input...</div>
+    <div id="status"></div>
   </div>
 
   <!-- RIGHT SIDE -->
@@ -157,13 +157,11 @@
 <script>
   const abstractInput = document.getElementById("abstractInput");
   const streamInput = document.getElementById("stream");
-  const levelInput = document.getElementById("academicLevel");
+  const academicInput = document.getElementById("academicLevel");
   const submitBtn = document.getElementById("submitBtn");
   const statusDiv = document.getElementById("status");
   const wordCounter = document.getElementById("wordCounter");
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-
-  let gazeStatus = "centered"; // default
 
   function countWords(str) {
     return str.trim().split(/\s+/).filter(word => word.length > 0).length;
@@ -174,24 +172,24 @@
     const age = document.getElementById("age").value.trim();
     const gender = document.getElementById("gender").value;
     const stream = streamInput.value;
-    const level = levelInput.value;
+    const academicLevel = academicInput.value;
     const words = countWords(abstractInput.value);
-    return name && age && gender && stream && level && words >= 15;
+    return name && age && gender && stream && academicLevel && words >= 15;
   }
 
   function updateStatus(msg) {
     statusDiv.innerText = msg;
   }
 
-  function fetchAbstract() {
+  function fetchAbstract(gazeStatus = "centered") {
     const data = {
       name: document.getElementById("name").value,
       age: document.getElementById("age").value,
       gender: document.getElementById("gender").value,
       stream: streamInput.value,
-      academicLevel: levelInput.value,
-      gazeStatus: gazeStatus,
-      abstract: abstractInput.value.trim()
+      academicLevel: academicInput.value,
+      abstract: abstractInput.value.trim(),
+      gazeStatus: gazeStatus
     };
 
     updateStatus("Fetching suggestion...");
@@ -215,6 +213,7 @@
   function resetOutputs() {
     document.getElementById("abstractOutput").style.display = "none";
     document.getElementById("conclusionOutput").style.display = "none";
+    updateStatus("Waiting for input...");
   }
 
   // Input listeners
@@ -228,7 +227,7 @@
       }));
   });
 
-  // Gaze detection strictness
+  // WebGazer logic (desktop only)
   if (!isMobile) {
     let pauseStart = null;
     let lastActivity = Date.now();
@@ -238,19 +237,20 @@
 
     webgazer.setGazeListener((data, timestamp) => {
       const inactive = Date.now() - lastActivity > 5000;
-      if (data && data.x && isFormReady() && inactive) {
-        const screenWidth = window.innerWidth;
-        const centerZoneStart = screenWidth * 0.4;
-        const centerZoneEnd = screenWidth * 0.6;
-
-        gazeStatus = (data.x >= centerZoneStart && data.x <= centerZoneEnd) ? "centered" : "off-center";
+      if (data && data.x && data.y && isFormReady() && inactive) {
+        const screenCenterX = window.innerWidth / 2;
+        const gazeOffset = Math.abs(data.x - screenCenterX);
+        let gazeStatus = "centered";
+        if (gazeOffset > 150) { // adjust for strictness
+          gazeStatus = "off-center";
+        }
 
         if (!pauseStart) {
           pauseStart = timestamp;
           updateStatus("Gaze detected. Hold still...");
         } else if (timestamp - pauseStart > 5000) {
           updateStatus("Auto-generating based on gaze...");
-          fetchAbstract();
+          fetchAbstract(gazeStatus);
           pauseStart = null;
         }
       } else {
@@ -266,3 +266,4 @@
 </script>
 </body>
 </html>
+
