@@ -117,18 +117,47 @@ def choose_variant(level, stream):
 @app.route("/suggest", methods=["POST"])
 def suggest():
     data = request.get_json()
+
     name = data.get("name")
     age = data.get("age")
     gender = data.get("gender")
+    level = data.get("academicLevel")   # ✅ UG or PG
     stream_raw = data.get("stream")
-    level = data.get("academicLevel", "UG")
     gaze = data.get("gazeStatus", "none")
     user_abs = data.get("userAbstract", "")
 
     stream = normalize_stream(stream_raw)
-    if level not in DATA: level = "UG"
+
+    # ✅ Validate
+    if level not in DATA:
+        return jsonify({"error": "Invalid academic level"}), 400
     if not stream or stream not in DATA[level]:
         return jsonify({"error": "Invalid stream"}), 400
+
+    # Gaze-based logic
+    if gaze == "centered" and len(user_abs.split()) >= 15:
+        choice = choose_variant(level, stream)
+    elif gaze == "off-center":
+        choice = SIMPLE_DATA
+    elif gaze == "partial":
+        choice = PARTIAL_DATA
+    else:
+        # Manual button fallback
+        if len(user_abs.split()) >= 15:
+            choice = choose_variant(level, stream)
+        else:
+            choice = PARTIAL_DATA
+
+    return jsonify({
+        "name": name,
+        "age": age,
+        "gender": gender,
+        "level": level,
+        "stream": stream,
+        "abstract": choice["abstract"],
+        "conclusion": choice["conclusion"]
+    })
+
 
     # --- Decide based on gaze & abstract ---
     if gaze == "centered" and len(user_abs.split()) >= 15:
