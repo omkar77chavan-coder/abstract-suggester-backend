@@ -70,18 +70,30 @@ let locked = false;
 // ====== Camera Fix ======
 async function initCam(){
   try {
+    console.log("🎥 Requesting camera...");
     const stream = await navigator.mediaDevices.getUserMedia({
-      video: { width: 640, height: 480, facingMode: "user" } // ✅ front camera
+      video: true,   // ✅ simpler constraint to avoid Timeout
+      audio: false
     });
+
     const cam = $("webcam");
+    if (!cam) {
+      console.error("❌ No <video id='webcam'> element found!");
+      return;
+    }
+
     cam.srcObject = stream;
-    await cam.play().catch(err => console.warn("Autoplay prevented:", err)); // ✅ ensures playback
+    await cam.play().catch(err => console.warn("⚠️ Autoplay prevented:", err));
+    console.log("✅ Camera stream started");
   } catch(e) {
-    console.log("Camera error:", e);
-    $("saStatus").textContent = "Camera unavailable — button still works.";
+    console.error("Camera error:", e);
+    const statusEl = $("saStatus");
+    if (statusEl) statusEl.textContent = "Camera unavailable — button still works.";
   }
 }
-initCam();
+
+// Run camera only after DOM fully loaded
+window.addEventListener("DOMContentLoaded", initCam);
 
 // ====== Word Count ======
 $("saInputAbs").addEventListener("input", () => {
@@ -120,11 +132,11 @@ $("saBtn").addEventListener("click", () => {
 });
 
 // ====== Initial check on page load ======
-(function(){
+window.addEventListener("DOMContentLoaded", () => {
   const count = $("saInputAbs").value.trim().split(/\s+/).filter(w => w).length;
   $("saWordCount").textContent = "Words: " + count;
   $("saBtn").disabled = count < 15;
-})();
+});
 </script>
 
 </body>
