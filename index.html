@@ -93,6 +93,12 @@ $("saBtn").addEventListener("click",()=>{
   fetchSuggestion($("saLevel").value,$("saStream").value,"manual");
 });
 
+// Initial check on page load
+(function(){
+  const count=$("saInputAbs").value.trim().split(/\s+/).filter(w=>w).length;
+  $("saWordCount").textContent="Words: "+count;
+  $("saBtn").disabled=count<15;
+})();
 </script>
 </body>
 </html>
