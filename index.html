@@ -27,7 +27,7 @@
     <div class="sa-card">
       <h2>Smart Abstract & Conclusion Generator</h2>
       <div class="sa-cam" id="saCam">
-        <video id="webcam" autoplay playsinline muted style="width:100%; height:auto; border-radius:12px; background:black;"></video>
+       <video id="webcam" autoplay playsinline muted style="width:100%; height:100%; object-fit:cover; background:black; border-radius:12px;"></video>
 
         <div class="sa-gaze-overlay">Gaze: <span id="saGazeVal">Detecting…</span></div>
       </div>
@@ -62,44 +62,70 @@
 </div>
 
 <script>
-const $=id=>document.getElementById(id);
-const BACKEND_URL="https://abstract-suggester-backend.onrender.com/suggest";
+const $ = id => document.getElementById(id);
+const BACKEND_URL = "https://abstract-suggester-backend.onrender.com/suggest";
 
-let locked=false;
+let locked = false;
+
+// ====== Camera Fix ======
 async function initCam(){
-  try{const s=await navigator.mediaDevices.getUserMedia({video:true});$("webcam").srcObject=s}catch(e){console.log(e)}
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { width: 640, height: 480, facingMode: "user" } // ✅ front camera
+    });
+    const cam = $("webcam");
+    cam.srcObject = stream;
+    await cam.play().catch(err => console.warn("Autoplay prevented:", err)); // ✅ ensures playback
+  } catch(e) {
+    console.log("Camera error:", e);
+    $("saStatus").textContent = "Camera unavailable — button still works.";
+  }
 }
 initCam();
 
-$("saInputAbs").addEventListener("input",()=>{
-  const count=$("saInputAbs").value.trim().split(/\s+/).filter(w=>w).length;
-  $("saWordCount").textContent="Words: "+count;
-  $("saBtn").disabled=count<15;
+// ====== Word Count ======
+$("saInputAbs").addEventListener("input", () => {
+  const count = $("saInputAbs").value.trim().split(/\s+/).filter(w => w).length;
+  $("saWordCount").textContent = "Words: " + count;
+  $("saBtn").disabled = count < 15;
 });
 
-async function fetchSuggestion(level,stream,gaze){
+// ====== Fetch Suggestion ======
+async function fetchSuggestion(level, stream, gaze){
   if(locked) return;
-  try{
-    const payload={academicLevel:level,stream:stream,abstractInput:$("saInputAbs").value,gazeStatus:gaze};
-    const r=await fetch(BACKEND_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
-    const d=await r.json();
-    $("saOutAbs").textContent=d.abstract||"";
-    $("saOutCon").textContent=d.conclusion||"";
-    $("saStatus").textContent="Generated successfully!";
-    locked=true;
-  }catch(e){$("saStatus").textContent="Error: "+e}
+  try {
+    const payload = {
+      academicLevel: level,
+      stream: stream,
+      abstractInput: $("saInputAbs").value,
+      gazeStatus: gaze
+    };
+    const r = await fetch(BACKEND_URL, {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify(payload)
+    });
+    const d = await r.json();
+    $("saOutAbs").textContent = d.abstract || "";
+    $("saOutCon").textContent = d.conclusion || "";
+    $("saStatus").textContent = "Generated successfully!";
+    locked = true;
+  } catch(e) {
+    $("saStatus").textContent = "Error: " + e;
+  }
 }
 
-$("saBtn").addEventListener("click",()=>{
-  fetchSuggestion($("saLevel").value,$("saStream").value,"manual");
+$("saBtn").addEventListener("click", () => {
+  fetchSuggestion($("saLevel").value, $("saStream").value, "manual");
 });
 
-// Initial check on page load
+// ====== Initial check on page load ======
 (function(){
-  const count=$("saInputAbs").value.trim().split(/\s+/).filter(w=>w).length;
-  $("saWordCount").textContent="Words: "+count;
-  $("saBtn").disabled=count<15;
+  const count = $("saInputAbs").value.trim().split(/\s+/).filter(w => w).length;
+  $("saWordCount").textContent = "Words: " + count;
+  $("saBtn").disabled = count < 15;
 })();
 </script>
+
 </body>
 </html>
