@@ -4,132 +4,188 @@
   <meta charset="UTF-8">
   <title>Smart Abstract & Conclusion Generator</title>
   <style>
-    body{background:#111;color:#eee;font-family:sans-serif;margin:0;padding:20px}
-    .wrap{max-width:1100px;margin:auto;background:#1a1d22;padding:20px;border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,.4);display:grid;grid-template-columns:1fr 1fr;gap:20px}
-    h2{margin-top:0;color:#4da3ff}
-    label{display:block;margin-top:10px;font-size:14px;color:#ccc}
-    input,select,textarea{width:100%;padding:10px;border-radius:8px;border:1px solid #333;background:#0d1014;color:#eee;font-size:14px}
-    textarea{min-height:100px;resize:vertical}
-    button{margin-top:15px;width:100%;padding:12px;font-size:15px;font-weight:bold;color:#fff;background:linear-gradient(180deg,#4da3ff,#2b6bb3);border:none;border-radius:8px;cursor:pointer}
-    .status{margin-top:8px;font-size:13px;color:#0f0}
-    .output{margin-top:15px;background:#0d1014;border:1px solid #333;border-left:4px solid #4da3ff;padding:12px;border-radius:8px;white-space:pre-line;display:none}
-    .err{color:#ef4444}
-    .cam{margin-top:10px;position:relative;height:240px;background:#000;border-radius:8px;overflow:hidden}
-    #webgazerVideoFeed{position:absolute;top:0;left:0;width:100%!important;height:100%!important;object-fit:cover!important;transform:scaleX(-1)}
-    #webgazerFaceOverlay,#webgazerFaceFeedbackBox,#webgazerGazeDot{position:absolute;top:0;left:0;z-index:5}
-    #webgazerGazeDot{display:none!important}
-    .gaze-status{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.6);color:#fff;padding:4px 8px;border-radius:6px;font-size:13px}
+    .sa-wrap{max-width:1200px;margin:24px auto;padding:0 16px;
+      font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+      color:#e9eef5}
+    .sa-card{background:linear-gradient(180deg,#171a1f,#13161a);
+      border:1px solid #2a2f36;border-radius:14px;
+      box-shadow:0 20px 50px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.03);
+      overflow:hidden}
+    .sa-head{padding:16px 20px;border-bottom:1px solid #2a2f36;
+      display:flex;justify-content:space-between;align-items:center}
+    .sa-title{font-weight:700;font-size:18px}
+    .sa-grid{display:flex;border-top:1px solid #2a2f36}
+    .sa-col{width:50%;padding:20px;border-right:1px solid #2a2f36}
+    .sa-col:last-child{border-right:none}
+    .sa-label{display:block;margin:12px 0 6px 0;font-size:13px;color:#a7b0bc}
+    .sa-input,.sa-select,.sa-textarea{width:100%;padding:11px 12px;border-radius:10px;
+      border:1px solid #2a2f36;background:#0d1014;color:#e9eef5;font-size:14px}
+    .sa-textarea{min-height:110px;resize:vertical}
+    .sa-input:focus,.sa-select:focus,.sa-textarea:focus{outline:none;border-color:#4da3ff}
+    .sa-btn{width:100%;margin-top:14px;padding:12px 14px;border:none;border-radius:10px;
+      background:linear-gradient(180deg,#4da3ff,#2b6bb3);color:white;font-weight:700;cursor:pointer}
+    .sa-btn:disabled{opacity:.5;cursor:not-allowed}
+    .sa-status{margin-top:10px;font-size:13px;color:#2dd4bf}
+    .sa-output{background:#0d1014;border:1px solid #2a2f36;border-left:4px solid #4da3ff;
+      border-radius:10px;padding:14px;white-space:pre-line;color:#d9e2ec;display:none}
+    .sa-warn{color:#f59e0b}
+    .sa-err{color:#ef4444}
+    @media(max-width:900px){.sa-grid{flex-direction:column}.sa-col{width:100%;border-right:none;border-bottom:1px solid #2a2f36}.sa-col:last-child{border-bottom:none}}
+
+    /* --- Camera Styling --- */
+    .sa-cam{position:relative;width:100%;height:240px;background:#111;
+      border-radius:8px;overflow:hidden;margin-bottom:15px;border:3px solid #333;display:flex;
+      justify-content:center;align-items:center}
+    #webcam{width:100%;height:100%;object-fit:cover;border-radius:8px}
+    .green-ring{border:3px solid lime !important}
+    .red-ring{border:3px solid red !important}
+    .sa-gaze-overlay{position:absolute;bottom:8px;left:50%;
+      transform:translateX(-50%);background:rgba(0,0,0,0.6);
+      padding:4px 10px;border-radius:6px;font-size:13px;color:#fff;z-index:10}
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <!-- LEFT SIDE -->
-    <div>
-      <h2>Smart Abstract & Conclusion Generator</h2>
-      <p style="font-size:13px;color:#aaa">Stable Gaze 3s = precise • Off-center = short • Partial = incomplete • Button always works</p>
+<div class="sa-wrap">
+  <div class="sa-card">
+    <div class="sa-head">
+      <div class="sa-title">Smart Abstract &amp; Conclusion Generator</div>
+    </div>
 
-      <!-- Camera -->
-      <div class="cam" id="camBox">
-        <div class="gaze-status">Gaze: <span id="gazeVal" style="color:yellow">Detecting…</span></div>
+    <div class="sa-grid">
+      <div class="sa-col">
+        <div class="sa-cam" id="saCam">
+          <video id="webcam" autoplay playsinline></video>
+          <div class="sa-gaze-overlay">Gaze: <span id="saGazeVal" style="color:yellow">Detecting…</span></div>
+        </div>
+
+        <label class="sa-label">Full Name</label>
+        <input type="text" class="sa-input" id="saName">
+
+        <label class="sa-label">Age</label>
+        <input type="number" class="sa-input" id="saAge">
+
+        <label class="sa-label">Gender</label>
+        <select class="sa-select" id="saGender">
+          <option value="">Select</option>
+          <option>Male</option>
+          <option>Female</option>
+        </select>
+
+        <label class="sa-label">Academic Level</label>
+        <select class="sa-select" id="saLevel">
+          <option value="">Select</option>
+          <option value="UG">Undergraduate</option>
+          <option value="PG">Postgraduate</option>
+        </select>
+
+        <label class="sa-label">Stream</label>
+        <select class="sa-select" id="saStream">
+          <option value="">Select</option>
+          <option>AI</option>
+          <option>ML</option>
+          <option>CSE</option>
+          <option>Cybersecurity</option>
+          <option>Data Science</option>
+          <option>Electronics</option>
+        </select>
+
+        <label class="sa-label">Abstract Input (min 15 words)</label>
+        <textarea class="sa-textarea" id="saInputAbs"></textarea>
+        <div id="saWordCount" style="font-size:13px;color:#a7b0bc">Words: 0</div>
+
+        <button class="sa-btn" id="saBtn" disabled>Generate Abstract &amp; Conclusion</button>
+        <div class="sa-status" id="saStatus">Waiting for input…</div>
       </div>
 
-      <!-- Form Fields -->
-      <label>Name</label>
-      <input id="name" type="text" placeholder="Your full name">
-
-      <label>Age</label>
-      <input id="age" type="number" placeholder="20">
-
-      <label>Gender</label>
-      <select id="gender">
-        <option value="">Select</option><option>Male</option><option>Female</option><option>Other</option>
-      </select>
-
-      <label>Academic Level</label>
-      <select id="level">
-        <option value="">Select</option>
-        <option value="UG">Undergraduate</option>
-        <option value="PG">Postgraduate</option>
-      </select>
-
-      <label>Stream</label>
-      <select id="stream">
-        <option value="">Select</option>
-        <option>AI</option>
-        <option>ML</option>
-        <option>CSE</option>
-        <option>Cybersecurity</option>
-        <option>Data Science</option>
-        <option>Electronics</option>
-      </select>
-
-      <label>Write your Abstract (min 15 words)</label>
-      <textarea id="abstract" placeholder="Describe your topic and goals..."></textarea>
-      <div id="wordCount" style="font-size:12px;color:#aaa;margin-top:4px">Words: 0</div>
-
-      <button id="genBtn">Generate Abstract & Conclusion</button>
-      <div id="status" class="status">Waiting for input…</div>
-    </div>
-
-    <!-- RIGHT SIDE -->
-    <div>
-      <h2>Generated Content</h2>
-      <div class="output" id="outAbs"></div>
-      <div class="output" id="outCon"></div>
+      <div class="sa-col">
+        <h3 style="margin:0 0 12px 0">Generated Content</h3>
+        <label class="sa-label">Suggested Abstract</label>
+        <div id="saOutAbs" class="sa-output"></div>
+        <label class="sa-label" style="margin-top:14px">Suggested Conclusion</label>
+        <div id="saOutCon" class="sa-output"></div>
+      </div>
     </div>
   </div>
+</div>
 
-  <script>
-    const $=id=>document.getElementById(id);
-    const nameEl=$("name"),ageEl=$("age"),genderEl=$("gender"),
-          streamEl=$("stream"),levelEl=$("level"),absEl=$("abstract"),
-          btnEl=$("genBtn"),statusEl=$("status"),
-          outAbs=$("outAbs"),outCon=$("outCon"),wordEl=$("wordCount"),
-          gazeVal=$("gazeVal");
+<script>
+(function(){
+  const $=id=>document.getElementById(id);
+  const nameEl=$("saName"),ageEl=$("saAge"),genderEl=$("saGender"),
+        streamEl=$("saStream"),levelEl=$("saLevel"),inputAbs=$("saInputAbs"),
+        btnEl=$("saBtn"),statusEl=$("saStatus"),outAbs=$("saOutAbs"),outCon=$("saOutCon"),
+        gazeVal=$("saGazeVal"),camBox=$("saCam"),wordCountEl=$("saWordCount");
 
-    const BACKEND_URL="http://localhost:5000/suggest"; // 🔹 Use your Flask server
+  const BACKEND_URL="https://abstract-suggester-backend.onrender.com/suggest";
 
-    const countWords=s=>s.trim().split(/\s+/).filter(Boolean).length;
-    function refreshWords(){wordEl.textContent=`Words: ${countWords(absEl.value)}`;}
-    ["input","change"].forEach(ev=>absEl.addEventListener(ev,refreshWords));
+  let stableStart=null,lastStatus="none",locked=false;
 
-    async function fetchSuggestion(gaze){
-      statusEl.textContent="Generating…";statusEl.className="status";
-      try{
-        const payload={
-          name:nameEl.value.trim(),
-          age:ageEl.value.trim(),
-          gender:genderEl.value,
-          stream:streamEl.value,
-          academicLevel:levelEl.value,
-          abstract:absEl.value.trim(),
-          gazeStatus:gaze
-        };
-        const res=await fetch(BACKEND_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
-        const data=await res.json();if(!res.ok)throw new Error(data.error||"Server error");
-        outAbs.textContent="Abstract: "+data.abstract;outCon.textContent="Conclusion: "+data.conclusion;
-        outAbs.style.display="block";outCon.style.display="block";
-        statusEl.textContent="Done!";
-      }catch(e){statusEl.textContent="Error: "+(e.message||"failed");statusEl.className="status err";}
+  // Camera init
+  async function initCamera(){
+    try{const s=await navigator.mediaDevices.getUserMedia({video:true});
+        $("webcam").srcObject=s;}catch(e){console.error("Camera error",e);}
+  }
+  initCamera();
+
+  // Word counter + button enable/disable
+  inputAbs.addEventListener("input",()=>{
+    const words=inputAbs.value.trim().split(/\s+/).filter(w=>w.length>0);
+    wordCountEl.textContent="Words: "+words.length;
+    btnEl.disabled = words.length < 15; // disable until >=15 words
+    locked=false; // unlock if user edits
+  });
+
+  // Unlock on any input change
+  [nameEl,ageEl,genderEl,streamEl,levelEl].forEach(el=>{
+    el.addEventListener("change",()=>{locked=false;});
+  });
+
+  async function fetchSuggestion(level,stream,gaze){
+    if(locked) return; // 🚀 do nothing if result locked
+    if(!level||!stream){setStatus("Please select all fields","sa-warn");return}
+    if(inputAbs.value.trim().split(/\s+/).length<15){setStatus("Abstract must have ≥15 words","sa-warn");return}
+    setStatus("Generating…");
+    try{
+      const payload={
+        name:nameEl.value,age:ageEl.value,gender:genderEl.value,
+        academicLevel:level,stream:stream,
+        abstractInput:inputAbs.value,gazeStatus:gaze
+      };
+      const r=await fetch(BACKEND_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+      const d=await r.json();if(!r.ok)throw new Error(d.error||"Server error");
+      outAbs.textContent=d.abstract;outCon.textContent=d.conclusion;
+      outAbs.style.display="block";outCon.style.display="block";
+      setStatus("Suggestion ready!");
+      locked=true; // 🚀 lock after first success
+    }catch(e){setStatus(e.message,"sa-err")}
+  }
+
+  function setStatus(msg,cls){statusEl.textContent=msg;statusEl.className="sa-status"+(cls?(" "+cls):"")}
+
+  // Button trigger
+  btnEl.addEventListener("click",()=>{fetchSuggestion(levelEl.value,streamEl.value,"manual")});
+
+  // Mock gaze detector (still running, but respects "locked")
+  function detectGaze(){
+    const vals=["centered","off-center","partial"];
+    return vals[Math.floor(Math.random()*vals.length)];
+  }
+
+  setInterval(()=>{
+    if(locked) return; // 🚀 stop auto-fetch once locked
+    const status=detectGaze();
+    gazeVal.textContent=status;
+    if(status==="centered"){camBox.classList.add("green-ring");camBox.classList.remove("red-ring");
+      if(!stableStart)stableStart=Date.now();
+      else if(Date.now()-stableStart>=3000 && lastStatus!=="centered"){
+        fetchSuggestion(levelEl.value,streamEl.value,"centered");lastStatus="centered";}
+    }else{
+      camBox.classList.add("red-ring");camBox.classList.remove("green-ring");
+      stableStart=null;
+      if(status!==lastStatus){fetchSuggestion(levelEl.value,streamEl.value,status);lastStatus=status;}
     }
-    btnEl.onclick=()=>fetchSuggestion("manual");
-
-    // --- Webgazer Stable Logic ---
-    let lastDir=null,startTs=0,triggered=false;
-    function gazeLogic(x){
-      const w=window.innerWidth;
-      const dir=(x<w*0.35)?"left":(x>w*0.65)?"right":"center";
-      if(dir!==lastDir){lastDir=dir;startTs=Date.now();triggered=false;}
-      const elapsed=(Date.now()-startTs)/1000;
-      gazeVal.textContent=dir;gazeVal.style.color=dir==="center"?"lime":dir==="left"||dir==="right"?"orange":"red";
-      if(dir==="center"&&elapsed>=3&&!triggered){triggered=true;fetchSuggestion("centered");}
-    }
-    function initGaze(){
-      const s=document.createElement("script");s.src="https://webgazer.cs.brown.edu/webgazer.js";s.async=true;
-      s.onload=()=>{try{webgazer.setGazeListener(d=>{if(d)gazeLogic(d.x)}).begin();}catch(e){console.error(e)}};
-      document.head.appendChild(s);
-    }
-    initGaze();
-  </script>
+  },1000);
+})();
+</script>
 </body>
 </html>
